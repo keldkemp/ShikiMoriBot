@@ -79,6 +79,17 @@ class Shikimori:
         js = ses.get(self.__BASE_URL_V1 + f'animes/{id_anime}', headers={'User-Agent': self.__client_name})
         return json.loads(js.text)
 
+    def get_anime_search(self, search: str, token: str, limit: int = 50, order: str = 'ranked') -> list:
+        ses = Session()
+        js = ses.get(self.__BASE_URL_V1 + f'animes?limit={limit}&order={order}&search={search}',
+                     headers=self.__get_headers(token=token))
+        return json.loads(js.text)
+
+    def get_anime_similar(self, id_anime: int, token: str) -> list:
+        ses = Session()
+        js = ses.get(self.__BASE_URL_V1 + f'animes/{id_anime}/similar', headers=self.__get_headers(token=token))
+        return json.loads(js.text)
+
     def create_user_rates(self, user_id: int, target_id: int, target_type: str, token: str, status: str = None,
                           score: int = None, chapters: int = None, episodes: int = None, volumes: int = None,
                           rewatches: int = None, text: str = None) -> list:

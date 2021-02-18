@@ -96,6 +96,55 @@ class DataBaseManager:
                                    f"order by {attr}")
         return res
 
+    def get_my_list_anime_9_rows(self, user_id: int, index: int = 0, status: str = None):
+        attr = self.get_attr_by_sort(user_id=user_id)
+        if status is None:
+            res = self.__db.select(f'SELECT a.name, a.name_ru, r.episodes, r.id '
+                                   f'FROM userrates r, animestatus s, anime a '
+                                   f'WHERE r.user_id = {user_id} '
+                                   f'and a.id = r.target_id '
+                                   f'and r.status = s.id '
+                                   f'order by {attr} '
+                                   f'offset {index} rows '
+                                   f'fetch next 9 rows only')
+        elif status == 'watching':
+            res = self.__db.select(f"SELECT a.name, a.name_ru, r.episodes, r.id "
+                                   f"FROM userrates r, animestatus s, anime a "
+                                   f"WHERE a.id = r.target_id and r.user_id = {user_id} "
+                                   f"and r.status = s.id and s.name = '{status}' "
+                                   f"order by {attr} "
+                                   f'offset {index} rows '
+                                   f'fetch next 9 rows only'
+                                   )
+        elif status == 'planned':
+            res = self.__db.select(f"SELECT a.name, a.name_ru, a.episodes, r.id "
+                                   f"FROM userrates r, animestatus s, anime a "
+                                   f"WHERE a.id = r.target_id and r.user_id = {user_id} "
+                                   f"and r.status = s.id and s.name = '{status}' "
+                                   f"order by {attr} "
+                                   f'offset {index} rows '
+                                   f'fetch next 9 rows only'
+                                   )
+        elif status == 'completed':
+            res = self.__db.select(f"SELECT a.name, a.name_ru, a.episodes, r.id "
+                                   f"FROM userrates r, animestatus s, anime a "
+                                   f"WHERE a.id = r.target_id and r.user_id = {user_id} "
+                                   f"and r.status = s.id and s.name = '{status}' "
+                                   f"order by {attr} "
+                                   f'offset {index} rows '
+                                   f'fetch next 9 rows only'
+                                   )
+        else:
+            res = self.__db.select(f"SELECT a.name, a.name_ru, a.episodes, r.episodes, r.id "
+                                   f"FROM userrates r, animestatus s, anime a "
+                                   f"WHERE a.id = r.target_id and r.user_id = {user_id} "
+                                   f"and r.status = s.id "
+                                   f"order by {attr} "
+                                   f'offset {index} rows '
+                                   f'fetch next 9 rows only'
+                                   )
+        return res
+
     def is_anime_in_bd(self, anime_id: int) -> bool:
         res = self.__db.select(f"SELECT * FROM anime where id = {anime_id}")
         if not res:

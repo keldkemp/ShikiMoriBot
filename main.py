@@ -143,6 +143,21 @@ def razbor(last_chat_id, call_back_id, last_text, message_id):
     if DBManager.is_user(tg_id=int(last_chat_id)):
         if last_text.lower().find('список') != -1:
             mainManager.get_my_list_anime(tg_id=last_chat_id)
+        elif last_text.find('anime_similar') != -1:
+            telegram.answer_callback(call_back_id)
+            mainManager.get_anime_similar(tg_id=last_chat_id, msg=last_text)
+        elif last_text.find('add_user_rate') != -1:
+            telegram.answer_callback(call_back_id)
+            mainManager.add_anime_in_my_list(tg_id=last_chat_id, msg_id=message_id, msg=last_text)
+        elif last_text.find('anime_search') != -1:
+            telegram.answer_callback(call_back_id)
+            mainManager.search_anime_result(tg_id=last_chat_id, msg_id=message_id, msg=last_text)
+        elif last_text.find('search') != -1 or last_text.find('Search') != -1:
+            if last_text.find('search//') != -1:
+                telegram.answer_callback(call_back_id)
+                mainManager.search_anime_in_shiki(tg_id=last_chat_id, msg_id=message_id, msg=last_text)
+            else:
+                mainManager.search_anime_in_shiki(tg_id=last_chat_id, msg=last_text)
         elif last_text.find('addEpisodes//') != -1 or last_text.find('removeEpisodes//') != -1:
             telegram.answer_callback(call_back_id)
             mainManager.edit_user_rates(tg_id=last_chat_id, command=last_text, message_id=message_id)

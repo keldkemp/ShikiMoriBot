@@ -59,7 +59,11 @@ class MainManager:
             rating = anime.get('rating')
             if rating is None or rating == 'None':
                 rating = None
-            ls.append(Anime(id=anime.get('id'), name=anime.get('name'), name_ru=anime.get('russian'),
+            if anime.get('name').find("'") != -1:
+                name = anime.get('name').replace("'", '')
+            else:
+                name = anime.get('name')
+            ls.append(Anime(id=anime.get('id'), name=name, name_ru=anime.get('russian'),
                             name_jp=name_jp, kind=anime.get('kind'), score=anime.get('score'),
                             status=anime.get('status'), episodes=anime.get('episodes'),
                             episodes_aired=anime.get('episodes_aired'), rating=rating,
@@ -104,7 +108,8 @@ class MainManager:
 
     def __generate_set_score_keyboard(self, user_rate_id: int, command: str) -> str:
         user_rate_id = str(user_rate_id)
-        keyboard = '{"inline_keyboard": [[{"text": "0", "callback_data": "SetScrore/// %s 0 %s"}, ' % (user_rate_id, command)
+        keyboard = '{"inline_keyboard": [[{"text": "0", "callback_data": "SetScrore/// %s 0 %s"}, ' % (
+        user_rate_id, command)
         keyboard += '{"text": "1", "callback_data": "SetScrore/// %s 1 %s"}, ' % (user_rate_id, command)
         keyboard += '{"text": "2", "callback_data": "SetScrore/// %s 2 %s"}],' % (user_rate_id, command)
         keyboard += '[{"text": "3", "callback_data": "SetScrore/// %s 3 %s"},' % (user_rate_id, command)
@@ -117,7 +122,7 @@ class MainManager:
         keyboard += '{"text": "10", "callback_data": "SetScrore/// %s 10 %s"}]]}' % (user_rate_id, command)
         return keyboard
 
-    def __generate_3_keyboard(self, array: list[dict], param: str) -> str:
+    def __generate_3_keyboard(self, array: list[dict], param: str, all: int) -> str:
         keyboard = '{"inline_keyboard": [['
         i = 1
         count = 0
@@ -130,10 +135,10 @@ class MainManager:
             count += 1
             if i == 10:
                 break
-        if len(array) < 10:
+        if all < 10:
             keyboard = keyboard[:-1] + ']]}'
         else:
-            keyboard = keyboard[:-1] + '],[{"text": "Далее", "callback_data": "%s 10"}]]}' % param
+            keyboard = keyboard[:-1] + '],[{"text": "Далее", "callback_data": "Next%s 9"}]]}' % param
         keyboard = keyboard[:-2] + ',[{"text": "Main", "callback_data": "%s"}]]}' % 'Main//'
         return keyboard
 
@@ -196,6 +201,23 @@ class MainManager:
                 ls.append(anime)
         animes = self.__convert_json_to_anime(list_anime=ls)
         self.__db.insert_or_update_anime_detail(list_anime=animes)
+
+    def get_info_anime_similar_in_shiki(self, tg_id: int, id_anime: int):
+        user = self.__db.get_user(tg_id=tg_id)
+        if not self.__auth_in_shiki(user=user):
+            self.__not_auth_in_shiki(user=user)
+            return 0
+
+        user = self.__db.get_user(tg_id=tg_id)
+
+        anime_similar = self.__shiki.get_anime_similar(id_anime=id_anime, token=user.token)
+        anime_similar = self.__convert_json_to_anime(list_anime=anime_similar)
+
+        return anime_similar
+
+    def get_anime_similar(self, tg_id: int, msg: str):
+        id = int(msg.split(' ')[1])
+        anime_list = self.get_info_anime_similar_in_shiki(tg_id=tg_id, id_anime=id)
 
     def get_min_info_about_anime_is_shiki(self, id_list: list, tg_id: int):
         user = self.__db.get_user(tg_id=tg_id)
@@ -306,6 +328,79 @@ class MainManager:
         animes = self.__db.get_anime_id_list_for_update()
         self.get_info_about_anime_in_shiki(anime_list=animes)
 
+    def add_anime_in_my_list(self, tg_id: int, msg_id: int, msg: str):
+        anime = self.__db.get_info_anime(id=int(msg.replace('add_user_rate ', '')))
+        user = self.__db.get_user(tg_id=tg_id)
+        if not self.__auth_in_shiki(user=user):
+            self.__not_auth_in_shiki(user=user)
+            return 0
+
+        user = self.__db.get_user(tg_id=tg_id)
+        user_rate = self.__shiki.create_user_rates(user_id=user.id, target_id=anime.id, token=user.token,
+                                                   target_type='Anime')
+        user_rate = self.__convert_json_to_userrates([user_rate])
+        self.__db.insert_or_update_anime_list(list_anime=user_rate, flag='NO DELETE')
+
+        self.__tg.edit_msg(chat_id=tg_id, msg='Аниме добавлено в список!',
+                           message_id=msg_id, reply_markup=self.MY_ANIME_LIST_KEYBOARD_TG)
+
+    def search_anime_in_shiki(self, tg_id: int, msg: str, msg_id: int = None):
+        anime_name = msg.replace('search ', '')
+        user = self.__db.get_user(tg_id=tg_id)
+        if not self.__auth_in_shiki(user=user):
+            self.__not_auth_in_shiki(user=user)
+            return 0
+        user = self.__db.get_user(tg_id=tg_id)
+
+        anime_list = self.__shiki.get_anime_search(token=user.token, search=msg)
+        anime_list = self.__convert_json_to_anime(list_anime=anime_list)
+        msg = f'Поиск: {anime_name}\n\nЧто нашел:\n'
+        keyboard = '{"inline_keyboard": [['
+        i = 1
+        count = 0
+        all = len(anime_list)
+
+        for anime in anime_list:
+            msg += f'{i}) {anime.name}/{anime.name_ru}\n'
+            if count == 3:
+                keyboard = keyboard[:-1] + '],['
+                count = 0
+            keyboard += '{"text": %i, "callback_data": "anime_search %i %s"},' % (i, anime.id, anime_name)
+            i += 1
+            count += 1
+            if i == 11:
+                break
+
+        keyboard = keyboard[:-1] + ']]}'
+        if msg_id is None:
+            self.__tg.send_msg(chat_id=tg_id, msg=msg, reply_markup=keyboard)
+        else:
+            self.__tg.edit_msg(chat_id=tg_id, msg=msg, reply_markup=keyboard, message_id=msg_id)
+
+    def search_anime_result(self, tg_id: int, msg_id: int, msg: str):
+        arr = msg.split(' ')
+        id = int(arr[1])
+        anime_name = arr[2]
+        keyboard = '{"inline_keyboard": [[{"text": "Добавить в список", "callback_data": "add_user_rate %i"}], ' \
+                   '[{"text": "Похожие", "callback_data": "anime_similar %i"}],' \
+                   '[{"text": "Назад", "callback_data": "search// %s"}]]}' % (id, id, anime_name)
+
+        if not self.__db.is_anime_in_bd(anime_id=id):
+            self.get_info_about_anime_in_shiki(anime_list=[id], tg_id=tg_id)
+        anime = self.__db.get_info_anime(id)
+        status = anime.status
+
+        message = f'Название: {anime.name}\nНазвание_ru: {anime.name_ru}\nСтатус: {anime.status}\n' \
+                  f'Рейтинг: {anime.rating}\nТип: {anime.kind}\n'
+        if status == 'ongoing':
+            message += f'Дата выхода эпизода: {datetime.datetime.strftime(anime.next_episode_at, "%Y-%m-%d")}\n'
+            message += f'Ко-во вышедших эпизодов: {anime.episodes_aired}\n'
+        message += f'Всего эпизодов: {anime.episodes}\n'
+        if status != 'anons':
+            message += f'Дата выхода: {datetime.datetime.strftime(anime.aired_on, "%Y-%m-%d")}\n'
+        message += f'Оценка: {anime.score}\n\nОписание:\n{anime.description}'
+        self.__tg.edit_msg(chat_id=tg_id, msg=message, message_id=msg_id, reply_markup=keyboard)
+
     def get_info_about_anime(self, tg_id: int, msg_id: int, user_rate_id: int, msg: str):
         msg = msg.split(' ')
         user = self.__db.get_user(tg_id=tg_id)
@@ -341,7 +436,8 @@ class MainManager:
             else:
                 keyboard = '{"inline_keyboard": [[{"text": "+", "callback_data": "%s"}],yy' % (p)
             if user_rate.status == 3:
-                keyboard = keyboard[:-2] + '[{"text": "Удалить из списка", "callback_data": "DeleteUserRates// %s"}],yy' % user_rate.id
+                keyboard = keyboard[
+                           :-2] + '[{"text": "Удалить из списка", "callback_data": "DeleteUserRates// %s"}],yy' % user_rate.id
             else:
                 try:
                     set_score = 'SetScrore// %s %s' % (user_rate.id, msg[2] + ' ' + msg[3])
@@ -364,280 +460,145 @@ class MainManager:
         flag = flag.split(' ')
         if flag[0] == 'NextListAnimeCompleted//':
             spisok = self.__db.get_my_list_anime(status='completed', user_id=user.id)
-            message = f'Аниме просмотренно {len(spisok)}:\nНазвание\n\n'
-            keyboard = '{"inline_keyboard": [['
+            len_spisok = len(spisok)
+            message = f'Аниме просмотренно {len_spisok}:\nНазвание\n\n'
+
             i = int(flag[1])
-            j = 1
+            j = i
+            if i < 0:
+                i = 0
+            spisok = self.__db.get_my_list_anime_9_rows(status='completed', user_id=user.id, index=i)
+            keyboard = '{"inline_keyboard": [['
             count = 0
-            count2 = 1
+
             for anime in spisok:
-                if j < i:
-                    j += 1
-                    continue
-                else:
-                    j = 100000
-                message += str(i) + ') ' + anime[0] + '/' + anime[1] + '\n'
+                message += str(i+1) + ') ' + anime[0] + '/' + anime[1] + '\n'
                 if count == 3:
                     keyboard = keyboard[:-1] + '],['
                     count = 0
                 keyboard += '{"text": %i, "callback_data": "anime_detail %i NextListAnimeCompleted// %s"},' % (
-                    i, anime[3], flag[1])
+                    i+1, anime[3], flag[1])
                 i += 1
                 count += 1
-                count2 += 1
-                if count2 == 10:
-                    break
-            if i - 1 == len(spisok):
-                k = i - 9
-                keyboard = keyboard[
-                           :-1] + '],[{"text": "Назад", "callback_data": "PreviousListAnimeCompleted// %i"}]]}' % (k)
+
+            if len(spisok) < 9:
+                k = j + 9 - 18
             else:
-                k = i - 9
-                keyboard = keyboard[:-1] + '],[{"text": "Назад", "callback_data": "PreviousListAnimeCompleted// %i"},' \
-                                           '{"text": "Далее", "callback_data": "NextListAnimeCompleted// %i"}]]}' % (
-                               k, i)
-        elif flag[0] == 'PreviousListAnimeCompleted//':
-            spisok = self.__db.get_my_list_anime(status='completed', user_id=user.id)
-            message = f'Аниме просмотренно {len(spisok)}:\nНазвание\n\n'
-            keyboard = '{"inline_keyboard": [['
-            i = int(flag[1])
-            j = i - 9
-            if j < 0:
-                j = 1
-            k = 1
-            count = 0
-            count2 = 1
-            for anime in spisok:
-                if k < j:
-                    k += 1
-                    continue
-                else:
-                    k = 100000
-                message += str(j) + ') ' + anime[0] + '/' + anime[1] + '\n'
-                if count == 3:
-                    keyboard = keyboard[:-1] + '],['
-                    count = 0
-                keyboard += '{"text": %i, "callback_data": "anime_detail %i PreviousListAnimeCompleted// %s"},' % (
-                    j, anime[3], flag[1])
-                j += 1
-                count += 1
-                count2 += 1
-                if count2 == 10 or j == i:
-                    break
-            if i == 10 or i < 10:
+                k = i - 18
+            if i == len_spisok:
+                keyboard = keyboard[
+                           :-1] + '],[{"text": "Назад", "callback_data": "NextListAnimeCompleted// %i"}]]}' % (k)
+            elif k < 0:
                 keyboard = keyboard[
                            :-1] + '],[{"text": "Далее", "callback_data": "NextListAnimeCompleted// %i"}]]}' % (i)
             else:
-                k = i - 9
-                keyboard = keyboard[:-1] + '],[{"text": "Назад", "callback_data": "PreviousListAnimeCompleted// %i"},' \
+                keyboard = keyboard[:-1] + '],[{"text": "Назад", "callback_data": "NextListAnimeCompleted// %i"},' \
                                            '{"text": "Далее", "callback_data": "NextListAnimeCompleted// %i"}]]}' % (
                                k, i)
         elif flag[0] == 'NextListAnimeAll//':
             spisok = self.__db.get_my_list_anime(status='all', user_id=user.id)
-            message = f'Все аниме {len(spisok)}:\nНазвание\n\n'
-            keyboard = '{"inline_keyboard": [['
+            len_spisok = len(spisok)
+            message = f'Все аниме {len_spisok}:\nНазвание\n\n'
+
             i = int(flag[1])
-            j = 1
+            j = i
+            if i < 0:
+                i = 0
+            spisok = self.__db.get_my_list_anime_9_rows(status='all', user_id=user.id, index=i)
+            keyboard = '{"inline_keyboard": [['
             count = 0
-            count2 = 1
+
             for anime in spisok:
-                if j < i:
-                    j += 1
-                    continue
-                else:
-                    j = 100000
-                message += str(i) + ') ' + anime[0] + '/' + anime[1] + '\n'
+                message += str(i+1) + ') ' + anime[0] + '/' + anime[1] + '\n'
                 if count == 3:
                     keyboard = keyboard[:-1] + '],['
                     count = 0
                 keyboard += '{"text": %i, "callback_data": "anime_detail %i NextListAnimeAll// %s"},' % (
-                    i, anime[4], flag[1])
+                    i+1, anime[4], flag[1])
                 i += 1
                 count += 1
-                count2 += 1
-                if count2 == 10:
-                    break
-            if i - 1 == len(spisok):
-                k = i - 9
-                keyboard = keyboard[
-                           :-1] + '],[{"text": "Назад", "callback_data": "PreviousListAnimeAll// %i"}]]}' % (k)
+            if len(spisok) < 9:
+                k = j + 9 - 18
             else:
-                k = i - 9
-                keyboard = keyboard[:-1] + '],[{"text": "Назад", "callback_data": "PreviousListAnimeAll// %i"},' \
-                                           '{"text": "Далее", "callback_data": "NextListAnimeAll// %i"}]]}' % (
-                               k, i)
-        elif flag[0] == 'PreviousListAnimeAll//':
-            spisok = self.__db.get_my_list_anime(status='all', user_id=user.id)
-            message = f'Все аниме {len(spisok)}:\nНазвание\n\n'
-            keyboard = '{"inline_keyboard": [['
-            i = int(flag[1])
-            j = i - 9
-            if j < 0:
-                j = 1
-            k = 1
-            count = 0
-            count2 = 1
-            for anime in spisok:
-                if k < j:
-                    k += 1
-                    continue
-                else:
-                    k = 100000
-                message += str(j) + ') ' + anime[0] + '/' + anime[1] + '\n'
-                if count == 3:
-                    keyboard = keyboard[:-1] + '],['
-                    count = 0
-                keyboard += '{"text": %i, "callback_data": "anime_detail %i PreviousListAnimeAll// %s"},' % (
-                    j, anime[4], flag[1])
-                j += 1
-                count += 1
-                count2 += 1
-                if count2 == 10 or j == i:
-                    break
-            if i == 10 or i < 10:
+                k = i - 18
+            if i == len_spisok:
+                keyboard = keyboard[
+                           :-1] + '],[{"text": "Назад", "callback_data": "NextListAnimeAll// %i"}]]}' % (k)
+            elif k < 0:
                 keyboard = keyboard[
                            :-1] + '],[{"text": "Далее", "callback_data": "NextListAnimeAll// %i"}]]}' % (i)
             else:
-                k = i - 9
-                keyboard = keyboard[:-1] + '],[{"text": "Назад", "callback_data": "PreviousListAnimeAll// %i"},' \
-                                           '{"text": "Далее", "callback_data": "NextListAnimeAll// %i"}]]}' % (k, i)
+                keyboard = keyboard[:-1] + '],[{"text": "Назад", "callback_data": "NextListAnimeAll// %i"},' \
+                                           '{"text": "Далее", "callback_data": "NextListAnimeAll// %i"}]]}' % (
+                               k, i)
         elif flag[0] == 'NextListAnimeWatching//':
             spisok = self.__db.get_my_list_anime(status='watching', user_id=user.id)
+            len_spisok = len(spisok)
             message = f'Аниме смотрю {len(spisok)}:\nНазвание - Кол-во просмотренных эпизодов\n\n'
-            keyboard = '{"inline_keyboard": [['
+
             i = int(flag[1])
-            j = 1
+            j = i
+            if i < 0:
+                i = 0
+            spisok = self.__db.get_my_list_anime_9_rows(status='watching', user_id=user.id, index=i)
+            keyboard = '{"inline_keyboard": [['
             count = 0
-            count2 = 1
             for anime in spisok:
-                if j < i:
-                    j += 1
-                    continue
-                else:
-                    j = 100000
-                message += str(i) + ') ' + anime[0] + '/' + anime[1] + ' - ' + str(anime[2]) + '\n'
+                message += str(i+1) + ') ' + anime[0] + '/' + anime[1] + ' - ' + str(anime[2]) + '\n'
                 if count == 3:
                     keyboard = keyboard[:-1] + '],['
                     count = 0
                 keyboard += '{"text": %i, "callback_data": "anime_detail %i NextListAnimeWatching// %s"},' % (
-                    i, anime[3], flag[1])
+                    i+1, anime[3], flag[1])
                 i += 1
                 count += 1
-                count2 += 1
-                if count2 == 10:
-                    break
-            if i - 1 == len(spisok):
-                k = i - 9
-                keyboard = keyboard[
-                           :-1] + '],[{"text": "Назад", "callback_data": "PreviousAnimeWatching// %i"}]]}' % (k)
+            if len(spisok) < 9:
+                k = j + 9 - 18
             else:
-                k = i - 9
-                keyboard = keyboard[:-1] + '],[{"text": "Назад", "callback_data": "PreviousAnimeWatching// %i"},' \
+                k = i - 18
+            if i == len_spisok:
+                keyboard = keyboard[
+                           :-1] + '],[{"text": "Назад", "callback_data": "NextListAnimeWatching// %i"}]]}' % (k)
+            elif k < 0:
+                keyboard = keyboard[
+                           :-1] + '],[{"text": "Далее", "callback_data": "NextListAnimeWatching// %i"}]]}' % (i)
+            else:
+                keyboard = keyboard[:-1] + '],[{"text": "Назад", "callback_data": "NextListAnimeWatching// %i"},' \
                                            '{"text": "Далее", "callback_data": "NextListAnimeWatching// %i"}]]}' % (
                                k, i)
-        elif flag[0] == 'PreviousAnimeWatching//':
-            spisok = self.__db.get_my_list_anime(status='watching', user_id=user.id)
-            message = f'Аниме смотрю {len(spisok)}:\nНазвание - Кол-во просмотренных эпизодов\n\n'
-            keyboard = '{"inline_keyboard": [['
-            i = int(flag[1])
-            j = i - 9
-            if j < 0:
-                j = 1
-            k = 1
-            count = 0
-            count2 = 1
-            for anime in spisok:
-                if k < j:
-                    k += 1
-                    continue
-                else:
-                    k = 100000
-                message += str(j) + ') ' + anime[0] + '/' + anime[1] + ' - ' + str(anime[2]) + '\n'
-                if count == 3:
-                    keyboard = keyboard[:-1] + '],['
-                    count = 0
-                keyboard += '{"text": %i, "callback_data": "anime_detail %i PreviousAnimeWatching// %s"},' % (
-                    j, anime[3], flag[1])
-                j += 1
-                count += 1
-                count2 += 1
-                if count2 == 10 or j == i:
-                    break
-            if i == 10 or i < 10:
-                keyboard = keyboard[
-                           :-1] + '],[{"text": "Далее", "callback_data": "NextListAnimeAll// %i"}]]}' % (i)
-            else:
-                k = i - 9
-                keyboard = keyboard[:-1] + '],[{"text": "Назад", "callback_data": "PreviousListAnimeAll// %i"},' \
-                                           '{"text": "Далее", "callback_data": "NextListAnimeAll// %i"}]]}' % (k, i)
         elif flag[0] == 'NextListAnimePlaned//':
             spisok = self.__db.get_my_list_anime(status='planned', user_id=user.id)
+            len_spisok = len(spisok)
             message = f'Аниме запланировано {len(spisok)}:\nНазвание - Кол-во всего эпизодов\n\n'
-            keyboard = '{"inline_keyboard": [['
+
             i = int(flag[1])
-            j = 1
+            j = i
+            if i < 0:
+                i = 0
+            spisok = self.__db.get_my_list_anime_9_rows(status='planned', user_id=user.id, index=i)
+            keyboard = '{"inline_keyboard": [['
             count = 0
-            count2 = 1
             for anime in spisok:
-                if j < i:
-                    j += 1
-                    continue
-                else:
-                    j = 100000
-                message += str(i) + ') ' + anime[0] + '/' + anime[1] + ' - ' + str(anime[2]) + '\n'
+                message += str(i+1) + ') ' + anime[0] + '/' + anime[1] + ' - ' + str(anime[2]) + '\n'
                 if count == 3:
                     keyboard = keyboard[:-1] + '],['
                     count = 0
                 keyboard += '{"text": %i, "callback_data": "anime_detail %i NextListAnimePlaned// %s"},' % (
-                    i, anime[3], flag[1])
+                    i+1, anime[3], flag[1])
                 i += 1
                 count += 1
-                count2 += 1
-                if count2 == 10:
-                    break
-            if i - 1 == len(spisok):
-                k = i - 9
-                keyboard = keyboard[
-                           :-1] + '],[{"text": "Назад", "callback_data": "PreviousAnimePlaned// %i"}]]}' % (k)
+            if len(spisok) < 9:
+                k = j + 9 - 18
             else:
-                k = i - 9
-                keyboard = keyboard[:-1] + '],[{"text": "Назад", "callback_data": "PreviousAnimePlaned// %i"},' \
-                                           '{"text": "Далее", "callback_data": "NextListAnimePlaned// %i"}]]}' % (
-                               k, i)
-        elif flag[0] == 'PreviousAnimePlaned//':
-            spisok = self.__db.get_my_list_anime(status='planned', user_id=user.id)
-            message = f'Аниме запланировано {len(spisok)}:\nНазвание - Кол-во всего эпизодов\n\n'
-            keyboard = '{"inline_keyboard": [['
-            i = int(flag[1])
-            j = i - 9
-            if j < 0:
-                j = 1
-            k = 1
-            count = 0
-            count2 = 1
-            for anime in spisok:
-                if k < j:
-                    k += 1
-                    continue
-                else:
-                    k = 100000
-                message += str(j) + ') ' + anime[0] + '/' + anime[1] + ' - ' + str(anime[2]) + '\n'
-                if count == 3:
-                    keyboard = keyboard[:-1] + '],['
-                    count = 0
-                keyboard += '{"text": %i, "callback_data": "anime_detail %i PreviousAnimePlaned// %s"},' % (
-                    j, anime[3], flag[1])
-                j += 1
-                count += 1
-                count2 += 1
-                if count2 == 10 or j == i:
-                    break
-            if i == 10 or i < 10:
+                k = i - 18
+            if i == len_spisok:
+                keyboard = keyboard[
+                           :-1] + '],[{"text": "Назад", "callback_data": "NextListAnimePlaned// %i"}]]}' % (k)
+            elif k < 0:
                 keyboard = keyboard[
                            :-1] + '],[{"text": "Далее", "callback_data": "NextListAnimePlaned// %i"}]]}' % (i)
             else:
-                k = i - 9
-                keyboard = keyboard[:-1] + '],[{"text": "Назад", "callback_data": "PreviousAnimePlaned// %i"},' \
+                keyboard = keyboard[:-1] + '],[{"text": "Назад", "callback_data": "NextListAnimePlaned// %i"},' \
                                            '{"text": "Далее", "callback_data": "NextListAnimePlaned// %i"}]]}' % (
                                k, i)
         keyboard = keyboard[:-2] + ',[{"text": "Main", "callback_data": "%s"}]]}' % 'Main//'
@@ -660,7 +621,7 @@ class MainManager:
                 if i == 10:
                     break
 
-            keyboard = self.__generate_3_keyboard(array=arr, param='ListAnimeWatching//')
+            keyboard = self.__generate_3_keyboard(array=arr, param='ListAnimeWatching//', all=len(spisok))
         elif flag == 'ListAnimePlaned//':
             spisok = self.__db.get_my_list_anime(status='planned', user_id=user.id)
             message = f'Аниме запланировано {len(spisok)}:\nНазвание - Кол-во всего эпизодов\n\n'
@@ -673,7 +634,7 @@ class MainManager:
                 if i == 10:
                     break
 
-            keyboard = self.__generate_3_keyboard(array=arr, param='ListAnimePlaned//')
+            keyboard = self.__generate_3_keyboard(array=arr, param='ListAnimePlaned//', all=len(spisok))
         elif flag == 'ListAnimeCompleted//':
             spisok = self.__db.get_my_list_anime(status='completed', user_id=user.id)
             message = f'Аниме просмотренно {len(spisok)}:\nНазвание\n\n'
@@ -686,7 +647,7 @@ class MainManager:
                 if i == 10:
                     break
 
-            keyboard = self.__generate_3_keyboard(array=arr, param='ListAnimeCompleted//')
+            keyboard = self.__generate_3_keyboard(array=arr, param='ListAnimeCompleted//', all=len(spisok))
         elif flag == 'ListAnimeAll//':
             spisok = self.__db.get_my_list_anime(user_id=user.id, status='all')
             message = f'Все аниме {len(spisok)}:\nНазвание\n\n'
@@ -698,7 +659,7 @@ class MainManager:
                 if i == 10:
                     break
 
-            keyboard = self.__generate_3_keyboard(array=arr, param='ListAnimeAll//')
+            keyboard = self.__generate_3_keyboard(array=arr, param='ListAnimeAll//', all=len(spisok))
         if msg_id is None:
             self.__tg.send_msg(chat_id=user.tg_id, msg=message, reply_markup=self.MY_ANIME_LIST_KEYBOARD_TG)
         elif flag == 'Main':
