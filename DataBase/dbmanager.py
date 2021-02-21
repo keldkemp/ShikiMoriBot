@@ -152,6 +152,13 @@ class DataBaseManager:
         else:
             return True
 
+    def is_anime_added_user_rate(self, anime_id: int, id_user: int) -> bool:
+        res = self.__db.select(f"select * from userrates where user_id = {id_user} and target_id = {anime_id}")
+        if not res:
+            return False
+        else:
+            return True
+
     def insert_or_update_anime_detail(self, list_anime: list):
         command = ''
         for anime in list_anime:

@@ -79,9 +79,9 @@ class Shikimori:
         js = ses.get(self.__BASE_URL_V1 + f'animes/{id_anime}', headers={'User-Agent': self.__client_name})
         return json.loads(js.text)
 
-    def get_anime_search(self, search: str, token: str, limit: int = 50, order: str = 'ranked') -> list:
+    def get_anime_search(self, search: str, token: str, limit: int = 50, page: int = 1, order: str = 'ranked') -> list:
         ses = Session()
-        js = ses.get(self.__BASE_URL_V1 + f'animes?limit={limit}&order={order}&search={search}',
+        js = ses.get(self.__BASE_URL_V1 + f'animes?limit={limit}&order={order}&search={search}&page={page}',
                      headers=self.__get_headers(token=token))
         return json.loads(js.text)
 

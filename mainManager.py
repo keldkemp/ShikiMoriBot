@@ -215,9 +215,27 @@ class MainManager:
 
         return anime_similar
 
-    def get_anime_similar(self, tg_id: int, msg: str):
+    def get_anime_similar(self, tg_id: int, msg: str, msg_id: int):
         id = int(msg.split(' ')[1])
         anime_list = self.get_info_anime_similar_in_shiki(tg_id=tg_id, id_anime=id)
+        anime_list = anime_list[0:9]
+        msg = f'Что нашел:\n'
+        keyboard = '{"inline_keyboard": [['
+        i = 1
+        count = 0
+
+        for anime in anime_list:
+            msg += f'{i}) {anime.name}/{anime.name_ru}\n'
+            if count == 3:
+                keyboard = keyboard[:-1] + '],['
+                count = 0
+            keyboard += '{"text": %i, "callback_data": "anime_search %i %i %s"},' % (i, anime.id, 1, anime.name)
+            i += 1
+            count += 1
+
+        keyboard = keyboard[:-1] + ']]}'
+
+        self.__tg.edit_msg(chat_id=tg_id, msg=msg, message_id=msg_id, reply_markup=keyboard)
 
     def get_min_info_about_anime_is_shiki(self, id_list: list, tg_id: int):
         user = self.__db.get_user(tg_id=tg_id)
@@ -345,33 +363,53 @@ class MainManager:
                            message_id=msg_id, reply_markup=self.MY_ANIME_LIST_KEYBOARD_TG)
 
     def search_anime_in_shiki(self, tg_id: int, msg: str, msg_id: int = None):
-        anime_name = msg.replace('search ', '')
+        if msg_id is not None:
+            st = msg.index('search//')
+            page = int(msg[0:st-1])
+            msg = msg.replace(str(page) + ' ', '')
+            anime_name = msg.replace('search// ', '')
+        else:
+            page = 1
+            anime_name = msg.replace('search ', '')
+
         user = self.__db.get_user(tg_id=tg_id)
         if not self.__auth_in_shiki(user=user):
             self.__not_auth_in_shiki(user=user)
             return 0
         user = self.__db.get_user(tg_id=tg_id)
 
-        anime_list = self.__shiki.get_anime_search(token=user.token, search=msg)
+        anime_list = self.__shiki.get_anime_search(token=user.token, search=msg, limit=9, page=page)
         anime_list = self.__convert_json_to_anime(list_anime=anime_list)
         msg = f'Поиск: {anime_name}\n\nЧто нашел:\n'
         keyboard = '{"inline_keyboard": [['
-        i = 1
+        if msg_id is not None:
+            i = 1 + (page-1) * 9
+        else:
+            i = 1
+        k = i
         count = 0
-        all = len(anime_list)
 
         for anime in anime_list:
             msg += f'{i}) {anime.name}/{anime.name_ru}\n'
             if count == 3:
                 keyboard = keyboard[:-1] + '],['
                 count = 0
-            keyboard += '{"text": %i, "callback_data": "anime_search %i %s"},' % (i, anime.id, anime_name)
+            keyboard += '{"text": %i, "callback_data": "anime_search %i %i %s"},' % (i, anime.id, page, anime_name)
             i += 1
             count += 1
-            if i == 11:
-                break
 
-        keyboard = keyboard[:-1] + ']]}'
+        if len(anime_list) == 0:
+            msg = 'Дальше аниме нет'
+            keyboard = keyboard[
+                       :-1] + '[{"text": "Назад", "callback_data": "%i search// %s"}]]}' % (page-1, anime_name)
+        elif k == 1:
+            keyboard = keyboard[
+                       :-1] + '],[{"text": "Далее", "callback_data": "%i search// %s"}]]}' % (page+1, anime_name)
+        else:
+            keyboard = keyboard[:-1] + '],[{"text": "Назад", "callback_data": "%i search// %s"},' \
+                                       '{"text": "Далее", "callback_data": "%i search// %s"}]]}' % (
+                           page-1, anime_name, page+1, anime_name)
+        keyboard = keyboard[:-2] + ',[{"text": "Main", "callback_data": "%s"}]]}' % 'Main//'
         if msg_id is None:
             self.__tg.send_msg(chat_id=tg_id, msg=msg, reply_markup=keyboard)
         else:
@@ -380,10 +418,21 @@ class MainManager:
     def search_anime_result(self, tg_id: int, msg_id: int, msg: str):
         arr = msg.split(' ')
         id = int(arr[1])
-        anime_name = arr[2]
-        keyboard = '{"inline_keyboard": [[{"text": "Добавить в список", "callback_data": "add_user_rate %i"}], ' \
-                   '[{"text": "Похожие", "callback_data": "anime_similar %i"}],' \
-                   '[{"text": "Назад", "callback_data": "search// %s"}]]}' % (id, id, anime_name)
+        page = int(arr[2])
+        anime_name = arr[3:len(arr)]
+        anime_name = ' '.join(anime_name)
+
+        user = self.__db.get_user(tg_id=tg_id)
+        is_anime_added = self.__db.is_anime_added_user_rate(anime_id=id, id_user=user.id)
+
+        if is_anime_added:
+            keyboard = '{"inline_keyboard": [[{"text": "Похожие", "callback_data": "anime_similar %i"}],' \
+                       '[{"text": "Назад", "callback_data": "%i search// %s"}]]}' % (id, page, anime_name)
+        else:
+            keyboard = '{"inline_keyboard": [[{"text": "Добавить в список", "callback_data": "add_user_rate %i"}], ' \
+                       '[{"text": "Похожие", "callback_data": "anime_similar %i"}],' \
+                       '[{"text": "Назад", "callback_data": "%i search// %s"}]]}' % (id, id, page, anime_name)
+        keyboard = keyboard[:-2] + ',[{"text": "Main", "callback_data": "%s"}]]}' % 'Main//'
 
         if not self.__db.is_anime_in_bd(anime_id=id):
             self.get_info_about_anime_in_shiki(anime_list=[id], tg_id=tg_id)
