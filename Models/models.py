@@ -128,6 +128,7 @@ class Anime(BaseModel):
         self.updated_at = self.DATETIME
         self.next_episode_at = self.DATETIME
         self.description = self.TEXT
+        self.url = self.VARCHAR(1024)
 
 
 class UserRates(BaseModel):

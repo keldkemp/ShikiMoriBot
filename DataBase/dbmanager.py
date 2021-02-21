@@ -43,6 +43,13 @@ class DataBaseManager:
             ls.append(l[0])
         return ls
 
+    def get_all_anime_id(self) -> list:
+        res = self.__db.select("SELECT id FROM anime")
+        ls = []
+        for l in res:
+            ls.append(l[0])
+        return ls
+
     def delete_token_user(self, id: int):
         self.__db.insert_init(f'UPDATE users SET token = null, refresh_token = null WHERE id = {id}')
 
@@ -53,7 +60,7 @@ class DataBaseManager:
         res = self.__db.select(f'SELECT * FROM anime WHERE id = {id}')[0]
         return Anime(id=res[0], name=res[1], name_ru=res[2], name_jp=res[3], kind=res[4], score=res[5], status=res[6],
                      episodes=res[7], episodes_aired=res[8], aired_on=res[9], released_on=res[10], rating=res[11],
-                     updated_at=res[12], next_episode_at=res[13], description=res[14])
+                     updated_at=res[12], next_episode_at=res[13], description=res[14], url=res[15])
 
     def get_info_user_rate(self, id: int) -> UserRates:
         res = self.__db.select(f'SELECT * FROM userrates WHERE id = {id}')[0]
@@ -181,11 +188,11 @@ class DataBaseManager:
                 command += "null, "
             else:
                 command += f"to_timestamp('{anime.next_episode_at}', 'YYYY-mm-dd HH24:MI:SS')::timestamp without time zone,"
-            command += f"'{anime.description}') ON CONFLICT (id) DO UPDATE SET " \
+            command += f"'{anime.description}', '{anime.url}') ON CONFLICT (id) DO UPDATE SET " \
                        f"name = '{anime.name}', name_ru = '{anime.name_ru}', name_jp = '{anime.name_jp}', " \
                        f"kind = '{anime.kind}', score = '{anime.score}', status = '{anime.status}', " \
                        f"episodes = {anime.episodes}, episodes_aired = {anime.episodes_aired}, rating = '{anime.rating}', " \
-                       f"description = '{anime.description}'"
+                       f"description = '{anime.description}', url = '{anime.url}'"
             if anime.updated_at is not None:
                 command += f", updated_at = to_timestamp('{anime.updated_at}', 'YYYY-mm-dd HH24:MI:SS')::timestamp without time zone"
             if anime.aired_on is not None:

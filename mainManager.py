@@ -27,6 +27,11 @@ class MainManager:
     def __convert_json_to_anime(self, list_anime: list) -> list:
         ls = []
         for anime in list_anime:
+            url = anime.get('url')
+            if url is None or url == 'None':
+                url = None
+            else:
+                url = self.__shiki.BASE_URL_SHIKI + url
             aried_on = anime.get('aired_on')
             if aried_on is None or aried_on == 'None':
                 aried_on = None
@@ -68,7 +73,7 @@ class MainManager:
                             status=anime.get('status'), episodes=anime.get('episodes'),
                             episodes_aired=anime.get('episodes_aired'), rating=rating,
                             description=description, updated_at=updated_at, aired_on=aried_on, released_on=released_on,
-                            next_episode_at=next_episode_at))
+                            next_episode_at=next_episode_at, url=url))
         return ls
 
     def __convert_json_to_userrates(self, list_user_rates: list) -> list:
@@ -346,6 +351,10 @@ class MainManager:
         animes = self.__db.get_anime_id_list_for_update()
         self.get_info_about_anime_in_shiki(anime_list=animes)
 
+    def all_update_anime(self):
+        animes = self.__db.get_all_anime_id()
+        self.get_info_about_anime_in_shiki(anime_list=animes)
+
     def add_anime_in_my_list(self, tg_id: int, msg_id: int, msg: str):
         anime = self.__db.get_info_anime(id=int(msg.replace('add_user_rate ', '')))
         user = self.__db.get_user(tg_id=tg_id)
@@ -466,7 +475,7 @@ class MainManager:
         if status != 'anons':
             message += f'Дата выхода: {datetime.datetime.strftime(anime.aired_on, "%Y-%m-%d")}\n'
         message += f'Оценка Ваша: {user_rate.score}\n' \
-                   f'Оценка: {anime.score}\n\nОписание:\n{anime.description}'
+                   f'Оценка: {anime.score}\nUrl: {anime.url}\n\nОписание:\n{anime.description}'
 
         if status != 'anons':
             try:

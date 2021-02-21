@@ -28,7 +28,8 @@ class Anime:
                 kind: str = None, score: str = None, status: str = None,
                 episodes: int = None, episodes_aired: int = None, aired_on: datetime = None,
                 released_on: datetime = None, rating: str = None, updated_at: datetime = None,
-                next_episode_at: datetime = None, description: str = None):
+                next_episode_at: datetime = None, description: str = None, url: str = None,
+              ):
         self.id = id
         self.name = name
         self.name_ru = name_ru
@@ -44,6 +45,7 @@ class Anime:
         self.updated_at = updated_at
         self.next_episode_at = next_episode_at
         self.description = description
+        self.url = url
 
 
 class UserRates:

@@ -11,6 +11,7 @@ class Shikimori:
     __BASE_URL_V2 = 'https://shikimori.one/api/v2/'
     __BASE_URL_V1 = 'https://shikimori.one/api/'
     __BASE_URL_AUTH = 'https://shikimori.one/oauth/token'
+    BASE_URL_SHIKI = 'https://shikimori.one'
 
     def __get_headers(self, token: str) -> dict:
         headers = {'User-Agent': self.__client_name, 'Authorization': f'Bearer {token}'}
