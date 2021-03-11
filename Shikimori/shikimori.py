@@ -64,7 +64,7 @@ class Shikimori:
     def get_anime_info(self, id_anime: int, token: str) -> dict:
         """Метод возвращает информацию по аниме
         :param token: token user
-        :param id_anime: ia anime/manga in ShikiMori
+        :param id_anime: ia anime in ShikiMori
         :return: dict
         """
         ses = Session()
@@ -73,7 +73,7 @@ class Shikimori:
 
     def get_anime_info_not_auth(self, id_anime: int) -> dict:
         """Метод возвращает информацию по аниме
-        :param id_anime: ia anime/manga in ShikiMori
+        :param id_anime: id anime in ShikiMori
         :return: dict
         """
         ses = Session()
@@ -91,6 +91,28 @@ class Shikimori:
         js = ses.get(self.__BASE_URL_V1 + f'animes/{id_anime}/similar', headers=self.__get_headers(token=token))
         return json.loads(js.text)
 
+    def get_manga_list(self, list_ids: list, token: str) -> list:
+        """
+        Возвращает базовую информацию по Аниме, списокм
+        :param token: token user
+        :param list_ids: ИД манги. Максимум 50 значений
+        :return: Список
+        """
+        ses = Session()
+        js = ses.get(self.__BASE_URL_V1 + f'mangas?ids={",".join(str(id) for id in list_ids)}&limit=50',
+                     headers=self.__get_headers(token=token))
+        return json.loads(js.text)
+
+    def get_manga_info(self, id_manga: int, token: str) -> dict:
+        """Метод возвращает информацию по аниме
+        :param token: token user
+        :param id_manga: id manga in ShikiMori
+        :return: dict
+        """
+        ses = Session()
+        js = ses.get(self.__BASE_URL_V1 + f'mangas/{id_manga}', headers=self.__get_headers(token=token))
+        return json.loads(js.text)
+
     def create_user_rates(self, user_id: int, target_id: int, target_type: str, token: str, status: str = None,
                           score: int = None, chapters: int = None, episodes: int = None, volumes: int = None,
                           rewatches: int = None, text: str = None) -> list:
@@ -102,9 +124,9 @@ class Shikimori:
         :param target_type: Anime/Manga
         :param status: watching, completed, planed
         :param score: Оценка
-        :param chapters: -
+        :param chapters: Главы
         :param episodes: кол-во просмотренных эпизодов
-        :param volumes: -
+        :param volumes: Тома
         :param rewatches: кол-во пересмотров
         :param text: комментарий
         :return: ответ от сервера в виде json
