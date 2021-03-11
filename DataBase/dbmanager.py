@@ -258,6 +258,13 @@ class DataBaseManager:
             res = self.__db.select(f'SELECT id, token, refresh_token, tg_id, list_settings FROM USERS WHERE id = {user_id}')[0]
         return Users(id=res[0], token=res[1], refresh_token=res[2], tg_id=res[3], list_settings=res[4])
 
+    def get_all_user(self) -> list:
+        res = self.__db.select(f'SELECT id, token, refresh_token, tg_id, list_settings FROM USERS')
+        ls = []
+        for r in res:
+            ls.append(Users(id=r[0], token=r[1], refresh_token=r[2], tg_id=r[3], list_settings=r[4]))
+        return ls
+
     def add_user(self, tg_id: int, token: str, refresh_token: str, user_id: int):
         self.__db.insert_init(f'INSERT INTO USERS (id, token, refresh_token, tg_id, list_settings) VALUES '
                               f"({user_id}, '{token}', '{refresh_token}', {tg_id}, 2) ON CONFLICT (id) DO UPDATE SET "
