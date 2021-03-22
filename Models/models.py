@@ -84,7 +84,7 @@ class SettingsListAnime(BaseModel):
         self.name = self.VARCHAR(512)
         self.init_data = {1: 'Сортировка по названию', 2: 'Сортировка по дате добавления',
                           3: 'Сортировка по кол-ву просмотренных эпизодов', 4: 'Сортировка по оценкам',
-                          5: 'Сортировка по Вашим оценкам'}
+                          5: 'Сортировка по Вашим оценкам', 6: 'Сортировка по дате обновления записей'}
 
 
 class Users(BaseModel):
@@ -94,6 +94,7 @@ class Users(BaseModel):
         self.refresh_token = self.VARCHAR(512)
         self.tg_id = self.BIGINT
         self.list_settings = self.INT
+        self.search = self.VARCHAR(512)
         self.__FK = self.FK(attr_name='list_settings', table_name='SettingsListAnime')
 
 
@@ -131,6 +132,23 @@ class Anime(BaseModel):
         self.url = self.VARCHAR(1024)
 
 
+class Manga(BaseModel):
+    def __init__(self):
+        self.id = self.INT + self.PK
+        self.name = self.VARCHAR(4096)
+        self.name_ru = self.VARCHAR(4096)
+        self.name_jp = self.VARCHAR(4096)
+        self.kind = self.VARCHAR(256)
+        self.score = self.VARCHAR(128)
+        self.status = self.VARCHAR(256)
+        self.volumes = self.INT
+        self.chapters = self.INT
+        self.aired_on = self.DATE
+        self.released_on = self.DATE
+        self.description = self.TEXT
+        self.url = self.VARCHAR(1024)
+
+
 class UserRates(BaseModel):
     def __init__(self):
         self.id = self.INT + self.PK
@@ -147,7 +165,6 @@ class UserRates(BaseModel):
         self.created_at = self.DATETIME
         self.updated_at = self.DATETIME
         self.__FK1 = self.FK(attr_name='user_id', table_name='Users')
-        self.__FK2 = self.FK(attr_name='target_id', table_name='Anime')
-        self.__FK3 = self.FK(attr_name='target_type', table_name='AnimeTypes')
-        self.__FK4 = self.FK(attr_name='status', table_name='AnimeStatus')
+        self.__FK2 = self.FK(attr_name='target_type', table_name='AnimeTypes')
+        self.__FK3 = self.FK(attr_name='status', table_name='AnimeStatus')
 
