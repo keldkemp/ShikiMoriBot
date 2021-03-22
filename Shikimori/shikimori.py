@@ -86,9 +86,20 @@ class Shikimori:
                      headers=self.__get_headers(token=token))
         return json.loads(js.text)
 
+    def get_manga_search(self, search: str, token: str, limit: int = 50, page: int = 1, order: str = 'ranked') -> list:
+        ses = Session()
+        js = ses.get(self.__BASE_URL_V1 + f'mangas?limit={limit}&order={order}&search={search}&page={page}',
+                     headers=self.__get_headers(token=token))
+        return json.loads(js.text)
+
     def get_anime_similar(self, id_anime: int, token: str) -> list:
         ses = Session()
         js = ses.get(self.__BASE_URL_V1 + f'animes/{id_anime}/similar', headers=self.__get_headers(token=token))
+        return json.loads(js.text)
+
+    def get_manga_similar(self, id_manga: int, token: str) -> list:
+        ses = Session()
+        js = ses.get(self.__BASE_URL_V1 + f'mangas/{id_manga}/similar', headers=self.__get_headers(token=token))
         return json.loads(js.text)
 
     def get_manga_list(self, list_ids: list, token: str) -> list:
@@ -111,6 +122,15 @@ class Shikimori:
         """
         ses = Session()
         js = ses.get(self.__BASE_URL_V1 + f'mangas/{id_manga}', headers=self.__get_headers(token=token))
+        return json.loads(js.text)
+
+    def get_manga_info_not_auth(self, id_manga: int) -> dict:
+        """Метод возвращает информацию по аниме
+        :param id_manga: id anime in ShikiMori
+        :return: dict
+        """
+        ses = Session()
+        js = ses.get(self.__BASE_URL_V1 + f'mangas/{id_manga}', headers={'User-Agent': self.__client_name})
         return json.loads(js.text)
 
     def create_user_rates(self, user_id: int, target_id: int, target_type: str, token: str, status: str = None,
