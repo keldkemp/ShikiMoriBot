@@ -1,6 +1,5 @@
 from DataBase.postgresql import DataBasePg
 from Models.dataModels import *
-import hashlib
 
 
 class DataBaseManager:
@@ -16,6 +15,8 @@ class DataBaseManager:
             attr = 'a.score desc'
         elif res[0] == 5:
             attr = 'r.score desc'
+        elif res[0] == 6:
+            attr = 'r.updated_at desc'
         else:
             attr = None
         return attr
@@ -36,8 +37,21 @@ class DataBaseManager:
     def set_settings_list(self, tg_id: int, list_settings: int):
         self.__db.insert_init(f'UPDATE users SET list_settings = {list_settings} WHERE tg_id = {tg_id}')
 
+    def update_user(self, tg_id: int, search: str = None) -> None:
+        if search is not None:
+            self.__db.insert_init(f"UPDATE USERS SET search = '{search}' WHERE tg_id = {tg_id}")
+        else:
+            self.__db.insert_init(f"UPDATE USERS SET search = null WHERE tg_id = {tg_id}")
+
     def get_anime_id_list_for_update(self) -> list:
         res = self.__db.select("SELECT id FROM anime WHERE status <> 'released'")
+        ls = []
+        for l in res:
+            ls.append(l[0])
+        return ls
+
+    def get_manga_id_list_for_update(self) -> list:
+        res = self.__db.select("SELECT id FROM manga WHERE status <> 'released'")
         ls = []
         for l in res:
             ls.append(l[0])
@@ -61,6 +75,12 @@ class DataBaseManager:
         return Anime(id=res[0], name=res[1], name_ru=res[2], name_jp=res[3], kind=res[4], score=res[5], status=res[6],
                      episodes=res[7], episodes_aired=res[8], aired_on=res[9], released_on=res[10], rating=res[11],
                      updated_at=res[12], next_episode_at=res[13], description=res[14], url=res[15])
+
+    def get_info_manga(self, id: int) -> Manga:
+        res = self.__db.select(f'SELECT * FROM manga WHERE id = {id}')[0]
+        return Manga(id=res[0], name=res[1], name_ru=res[2], name_jp=res[3], kind=res[4], score=res[5], status=res[6],
+                     volumes=res[7], chapters=res[8], aired_on=res[9], released_on=res[10],
+                     description=res[11], url=res[12])
 
     def get_info_user_rate(self, id: int) -> UserRates:
         res = self.__db.select(f'SELECT * FROM userrates WHERE id = {id}')[0]
@@ -98,6 +118,41 @@ class DataBaseManager:
         else:
             res = self.__db.select(f"SELECT a.name, a.name_ru, a.episodes, r.episodes, r.id "
                                    f"FROM userrates r, animestatus s, anime a "
+                                   f"WHERE a.id = r.target_id and r.user_id = {user_id} "
+                                   f"and r.status = s.id "
+                                   f"order by {attr}")
+        return res
+
+    def get_my_list_manga(self, user_id: int, status: str = None):
+        attr = self.get_attr_by_sort(user_id=user_id)
+        if status is None:
+            res = self.__db.select(f'SELECT a.name, a.name_ru, r.chapters, r.id '
+                                   f'FROM userrates r, animestatus s, manga a '
+                                   f'WHERE r.user_id = {user_id} '
+                                   f'and a.id = r.target_id '
+                                   f'and r.status = s.id '
+                                   f'order by {attr}')
+        elif status == 'watching':
+            res = self.__db.select(f"SELECT a.name, a.name_ru, r.chapters, r.id "
+                                   f"FROM userrates r, animestatus s, manga a "
+                                   f"WHERE a.id = r.target_id and r.user_id = {user_id} "
+                                   f"and r.status = s.id and s.name = '{status}' "
+                                   f"order by {attr}")
+        elif status == 'planned':
+            res = self.__db.select(f"SELECT a.name, a.name_ru, a.chapters, r.id "
+                                   f"FROM userrates r, animestatus s, manga a "
+                                   f"WHERE a.id = r.target_id and r.user_id = {user_id} "
+                                   f"and r.status = s.id and s.name = '{status}' "
+                                   f"order by {attr}")
+        elif status == 'completed':
+            res = self.__db.select(f"SELECT a.name, a.name_ru, a.chapters, r.id "
+                                   f"FROM userrates r, animestatus s, manga a "
+                                   f"WHERE a.id = r.target_id and r.user_id = {user_id} "
+                                   f"and r.status = s.id and s.name = '{status}' "
+                                   f"order by {attr}")
+        else:
+            res = self.__db.select(f"SELECT a.name, a.name_ru, a.chapters, r.chapters, r.id "
+                                   f"FROM userrates r, animestatus s, manga a "
                                    f"WHERE a.id = r.target_id and r.user_id = {user_id} "
                                    f"and r.status = s.id "
                                    f"order by {attr}")
@@ -152,6 +207,55 @@ class DataBaseManager:
                                    )
         return res
 
+    def get_my_list_manga_9_rows(self, user_id: int, index: int = 0, status: str = None):
+        attr = self.get_attr_by_sort(user_id=user_id)
+        if status is None:
+            res = self.__db.select(f'SELECT a.name, a.name_ru, r.chapters, r.id '
+                                   f'FROM userrates r, animestatus s, manga a '
+                                   f'WHERE r.user_id = {user_id} '
+                                   f'and a.id = r.target_id '
+                                   f'and r.status = s.id '
+                                   f'order by {attr} '
+                                   f'offset {index} rows '
+                                   f'fetch next 9 rows only')
+        elif status == 'watching':
+            res = self.__db.select(f"SELECT a.name, a.name_ru, r.chapters, r.id "
+                                   f"FROM userrates r, animestatus s, manga a "
+                                   f"WHERE a.id = r.target_id and r.user_id = {user_id} "
+                                   f"and r.status = s.id and s.name = '{status}' "
+                                   f"order by {attr} "
+                                   f'offset {index} rows '
+                                   f'fetch next 9 rows only'
+                                   )
+        elif status == 'planned':
+            res = self.__db.select(f"SELECT a.name, a.name_ru, a.chapters, r.id "
+                                   f"FROM userrates r, animestatus s, manga a "
+                                   f"WHERE a.id = r.target_id and r.user_id = {user_id} "
+                                   f"and r.status = s.id and s.name = '{status}' "
+                                   f"order by {attr} "
+                                   f'offset {index} rows '
+                                   f'fetch next 9 rows only'
+                                   )
+        elif status == 'completed':
+            res = self.__db.select(f"SELECT a.name, a.name_ru, a.chapters, r.id "
+                                   f"FROM userrates r, animestatus s, manga a "
+                                   f"WHERE a.id = r.target_id and r.user_id = {user_id} "
+                                   f"and r.status = s.id and s.name = '{status}' "
+                                   f"order by {attr} "
+                                   f'offset {index} rows '
+                                   f'fetch next 9 rows only'
+                                   )
+        else:
+            res = self.__db.select(f"SELECT a.name, a.name_ru, a.chapters, r.chapters, r.id "
+                                   f"FROM userrates r, animestatus s, manga a "
+                                   f"WHERE a.id = r.target_id and r.user_id = {user_id} "
+                                   f"and r.status = s.id "
+                                   f"order by {attr} "
+                                   f'offset {index} rows '
+                                   f'fetch next 9 rows only'
+                                   )
+        return res
+
     def is_anime_in_bd(self, anime_id: int) -> bool:
         res = self.__db.select(f"SELECT * FROM anime where id = {anime_id}")
         if not res:
@@ -159,12 +263,44 @@ class DataBaseManager:
         else:
             return True
 
-    def is_anime_added_user_rate(self, anime_id: int, id_user: int) -> bool:
-        res = self.__db.select(f"select * from userrates where user_id = {id_user} and target_id = {anime_id}")
+    def is_manga_in_bd(self, manga_id: int) -> bool:
+        res = self.__db.select(f"SELECT * FROM manga where id = {manga_id}")
         if not res:
             return False
         else:
             return True
+
+    def is_anime_added_user_rate(self, anime_id: int, id_user: int) -> bool:
+        res = self.__db.select(f"select * from userrates where user_id = {id_user} and target_id = {anime_id} and target_type = 1")
+        if not res:
+            return False
+        else:
+            return True
+
+    def insert_or_update_manga_detail(self, list_manga: list):
+        command = ''
+        for manga in list_manga:
+            command += f"INSERT INTO manga VALUES ({manga.id}, '{manga.name}', '{manga.name_ru}', '{manga.name_jp}', " \
+                       f"'{manga.kind}', '{manga.score}', '{manga.status}', {manga.volumes}, {manga.chapters}, "
+            if manga.aired_on is None:
+                command += "null, "
+            else:
+                command += f"to_date('{manga.aired_on}', 'YYYY-mm-dd'), "
+            if manga.released_on is None:
+                command += "null, "
+            else:
+                command += f"to_date('{manga.released_on}', 'YYYY-mm-dd'), "
+            command += f"'{manga.description}', '{manga.url}') ON CONFLICT (id) DO UPDATE SET " \
+                       f"name = '{manga.name}', name_ru = '{manga.name_ru}', name_jp = '{manga.name_jp}', " \
+                       f"kind = '{manga.kind}', score = '{manga.score}', status = '{manga.status}', " \
+                       f"volumes = {manga.volumes}, chapters = {manga.chapters}, " \
+                       f"description = '{manga.description}', url = '{manga.url}'"
+            if manga.aired_on is not None:
+                command += f", aired_on = to_date('{manga.aired_on}', 'YYYY-mm-dd')"
+            if manga.released_on is not None:
+                command += f", released_on = to_date('{manga.released_on}', 'YYYY-mm-dd')"
+            command += ";"
+        self.__db.insert_init(command)
 
     def insert_or_update_anime_detail(self, list_anime: list):
         command = ''
@@ -236,8 +372,11 @@ class DataBaseManager:
                 self.__db.insert_init(f'DELETE FROM userrates where id in ({ids})')
         self.__db.insert_init(command)
 
-    def get_type(self, name) -> AnimeTypes:
-        res = self.__db.select(f"SELECT * FROM animetypes WHERE name = '{name}'")[0]
+    def get_type(self, name: str = None, id: int = None) -> AnimeTypes:
+        if id is None:
+            res = self.__db.select(f"SELECT * FROM animetypes WHERE name = '{name}'")[0]
+        else:
+            res = self.__db.select(f"SELECT * FROM animetypes WHERE id = {id}")[0]
         return AnimeTypes(id=res[0], name=res[1])
 
     def get_status(self, name) -> AnimeStatus:
@@ -253,10 +392,17 @@ class DataBaseManager:
 
     def get_user(self, tg_id: int = None, user_id: int = None) -> Users:
         if tg_id is not None:
-            res = self.__db.select(f'SELECT id, token, refresh_token, tg_id, list_settings FROM USERS WHERE tg_id = {tg_id}')[0]
+            res = self.__db.select(f'SELECT id, token, refresh_token, tg_id, list_settings, search '
+                                   f'FROM USERS WHERE tg_id = {tg_id}')[0]
         else:
-            res = self.__db.select(f'SELECT id, token, refresh_token, tg_id, list_settings FROM USERS WHERE id = {user_id}')[0]
-        return Users(id=res[0], token=res[1], refresh_token=res[2], tg_id=res[3], list_settings=res[4])
+            res = self.__db.select(f'SELECT id, token, refresh_token, tg_id, list_settings, search '
+                                   f'FROM USERS WHERE id = {user_id}')[0]
+        return Users(id=res[0], token=res[1], refresh_token=res[2], tg_id=res[3], list_settings=res[4], search=res[5])
+
+    def get_user_search(self, tg_id: int) -> str:
+        res = self.__db.select(f'SELECT search '
+                               f'FROM USERS WHERE tg_id = {tg_id}')[0]
+        return res[0]
 
     def get_all_user(self) -> list:
         res = self.__db.select(f'SELECT id, token, refresh_token, tg_id, list_settings FROM USERS')
