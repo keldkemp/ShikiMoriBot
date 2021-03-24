@@ -539,28 +539,25 @@ class MainManager:
         users = self.__db.get_all_user()
         msg = 'Вышли все эпизоды по Аниме:\n\n'
 
-        for anime_id in animes_after_update:
-            if str(animes).find(str(anime_id)) == -1:
+        for anime_id in animes:
+            if str(animes_after_update).find(str(anime_id)) == -1:
                 anime = self.__db.get_info_anime(id=anime_id)
                 animes_list.append(anime)
                 msg += f'--{anime.name_ru}\n'
-
-        if len(animes_list) is not None and len(animes_list) != 0:
-            self.__tg.send_msg(chat_id=453256909, msg=msg)
 
         mangas = self.__db.get_manga_id_list_for_update()
         self.get_info_about_manga_in_shiki(manga_list=mangas)
         mangas_after_update = self.__db.get_manga_id_list_for_update()
         mangas_list = []
-        msg = 'Вышли все главы по Манге:\n\n'
+        msg += '\nВышли все главы по Манге:\n\n'
 
-        for manga_id in mangas_after_update:
-            if str(mangas).find(str(manga_id)) == -1:
+        for manga_id in mangas:
+            if str(mangas_after_update).find(str(manga_id)) == -1:
                 manga = self.__db.get_info_manga(id=manga_id)
                 mangas_list.append(manga)
                 msg += f'--{manga.name_ru}\n'
 
-        if len(mangas_list) is not None and len(mangas_list) != 0:
+        if (len(mangas_list) is not None and len(mangas_list) != 0) or (len(animes_list) is not None and len(animes_list) != 0):
             self.__tg.send_msg(chat_id=453256909, msg=msg)
 
     def all_update_anime(self):
