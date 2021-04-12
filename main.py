@@ -71,6 +71,7 @@ def razbor(last_chat_id, call_back_id, last_text, message_id):
         elif last_text == 'ListMangaWatching//' or last_text == 'ListMangaPlaned//' \
                 or last_text == 'ListMangaCompleted//' or last_text == 'ListMangaAll//':
             mainManager.get_my_list_manga(tg_id=last_chat_id, flag=last_text, msg_id=message_id)
+            telegram.answer_callback(call_back_id)
         elif last_text.find('anime_similar') != -1:
             telegram.answer_callback(call_back_id)
             mainManager.get_anime_similar(tg_id=last_chat_id, msg=last_text, msg_id=message_id)
@@ -101,7 +102,8 @@ def razbor(last_chat_id, call_back_id, last_text, message_id):
                 mainManager.search_manga_in_shiki(tg_id=last_chat_id, msg_id=message_id, msg=last_text)
             else:
                 mainManager.search_manga_in_shiki(tg_id=last_chat_id, msg=last_text)
-        elif last_text.find('addEpisodes//') != -1 or last_text.find('removeEpisodes//') != -1:
+        elif last_text.find('addEpisodes//') != -1 or last_text.find('removeEpisodes//') != -1 \
+                or last_text.find('addVolumes//') != -1 or last_text.find('removeVolumes//') != -1:
             telegram.answer_callback(call_back_id)
             mainManager.edit_user_rates(tg_id=last_chat_id, command=last_text, message_id=message_id)
         elif last_text == 'Main//':

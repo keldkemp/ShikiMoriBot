@@ -104,7 +104,7 @@ class DataBaseManager:
                                    f"and r.status = s.id and s.name = '{status}' "
                                    f"order by {attr}")
         elif status == 'planned':
-            res = self.__db.select(f"SELECT a.name, a.name_ru, a.episodes, r.id "
+            res = self.__db.select(f"SELECT a.name, a.name_ru, a.episodes, r.id, a.status "
                                    f"FROM userrates r, animestatus s, anime a "
                                    f"WHERE a.id = r.target_id and r.user_id = {user_id} "
                                    f"and r.status = s.id and s.name = '{status}' "
@@ -179,7 +179,7 @@ class DataBaseManager:
                                    f'fetch next 9 rows only'
                                    )
         elif status == 'planned':
-            res = self.__db.select(f"SELECT a.name, a.name_ru, a.episodes, r.id "
+            res = self.__db.select(f"SELECT a.name, a.name_ru, a.episodes, r.id, a.status "
                                    f"FROM userrates r, animestatus s, anime a "
                                    f"WHERE a.id = r.target_id and r.user_id = {user_id} "
                                    f"and r.status = s.id and s.name = '{status}' "

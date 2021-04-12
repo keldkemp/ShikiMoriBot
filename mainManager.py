@@ -70,7 +70,7 @@ class MainManager:
             if name_jp is None or name_jp == 'None':
                 name_jp = None
             else:
-                name_jp = name_jp[0]
+                name_jp = name_jp[0].replace("'", '')
             rating = anime.get('rating')
             if rating is None or rating == 'None':
                 rating = None
@@ -189,7 +189,7 @@ class MainManager:
                 count = 0
             if param.lower().find('anime') != -1:
                 keyboard += '{"text": %i, "callback_data": "anime_detail %i %s"},' % (
-                arr.get('text'), arr.get('id'), param)
+                    arr.get('text'), arr.get('id'), param)
             else:
                 keyboard += '{"text": %i, "callback_data": "manga_detail %i %s"},' % (
                     arr.get('text'), arr.get('id'), param)
@@ -502,6 +502,21 @@ class MainManager:
                 self.get_info_about_anime(tg_id=tg_id, msg_id=message_id, user_rate_id=user_rate_id, msg=other)
             else:
                 self.get_info_about_manga(tg_id=tg_id, msg_id=message_id, user_rate_id=user_rate_id, msg=other)
+        elif commands[0] == 'addVolumes//' or commands[0] == 'removeVolumes//':
+            volumes = int(commands[1])
+            user_rate_id = int(commands[2])
+            other = ['1', ' 2 ']
+            other.append(commands[3])
+            try:
+                other.append(' ' + commands[4])
+            except:
+                pass
+            other = ''.join(other)
+            manga = self.__shiki.set_rates(id_user_rates=user_rate_id, volumes=volumes, status='watching',
+                                           token=user.token)
+            list_manga_data = self.__convert_json_to_userrates(list_user_rates=[manga])
+            self.__db.insert_or_update_anime_list(list_anime=list_manga_data, flag='NO DELETE')
+            self.get_info_about_manga(tg_id=tg_id, msg_id=message_id, user_rate_id=user_rate_id, msg=other)
         else:
             episodes = int(commands[1])
             user_rate_id = int(commands[2])
@@ -557,7 +572,8 @@ class MainManager:
                 mangas_list.append(manga)
                 msg += f'--{manga.name_ru}\n'
 
-        if (len(mangas_list) is not None and len(mangas_list) != 0) or (len(animes_list) is not None and len(animes_list) != 0):
+        if (len(mangas_list) is not None and len(mangas_list) != 0) or (
+                len(animes_list) is not None and len(animes_list) != 0):
             self.__tg.send_msg(chat_id=453256909, msg=msg)
 
     def all_update_anime(self):
@@ -854,20 +870,33 @@ class MainManager:
 
         if status != 'anons':
             try:
-                p = 'addEpisodes// ' + str(user_rate.episodes + 1) + ' ' + str(user_rate.id) + ' ' + msg[2] + ' ' + msg[
+                p = 'addEpisodes// ' + str(user_rate.chapters + 1) + ' ' + str(user_rate.id) + ' ' + msg[2] + ' ' + msg[
                     3]
-                m = 'removeEpisodes// ' + str(user_rate.episodes - 1) + ' ' + str(user_rate.id) + ' ' + msg[2] + ' ' + \
+                m = 'removeEpisodes// ' + str(user_rate.chapters - 1) + ' ' + str(user_rate.id) + ' ' + msg[2] + ' ' + \
+                    msg[3]
+                t = 'addVolumes// ' + str(user_rate.volumes + 1) + ' ' + str(user_rate.id) + ' ' + msg[2] + ' ' + \
+                    msg[3]
+                k = 'removeVolumes// ' + str(user_rate.volumes - 1) + ' ' + str(user_rate.id) + ' ' + msg[2] + ' ' + \
                     msg[3]
             except:
                 p = 'addEpisodes// ' + str(user_rate.chapters + 1) + ' ' + str(user_rate.id) + ' ' + msg[2]
                 m = 'removeEpisodes// ' + str(user_rate.chapters - 1) + ' ' + str(user_rate.id) + ' ' + msg[2]
-            if user_rate.chapters == manga.chapters:
-                keyboard = '{"inline_keyboard": [[{"text": "-", "callback_data": "%s"}],yy' % (m)
-            elif user_rate.chapters != 0:
-                keyboard = '{"inline_keyboard": [[{"text": "-", "callback_data": "%s"},' \
-                           '{"text": "+", "callback_data": "%s"}],yy' % (m, p)
+                t = 'addVolumes// ' + str(user_rate.volumes + 1) + ' ' + str(user_rate.id) + ' ' + msg[2]
+                k = 'removeVolumes// ' + str(user_rate.volumes - 1) + ' ' + str(user_rate.id) + ' ' + msg[2]
+            if user_rate.volumes == manga.volumes:
+                keyboard = '{"inline_keyboard": [[{"text": "Том -", "callback_data": "%s"}],yy' % (k)
+            elif user_rate.volumes != 0:
+                keyboard = '{"inline_keyboard": [[{"text": "Том -", "callback_data": "%s"},' \
+                           '{"text": "Том +", "callback_data": "%s"}],yy' % (k, t)
             else:
-                keyboard = '{"inline_keyboard": [[{"text": "+", "callback_data": "%s"}],yy' % (p)
+                keyboard = '{"inline_keyboard": [[{"text": "Том +", "callback_data": "%s"}],yy' % (t)
+            if user_rate.chapters == manga.chapters:
+                keyboard = keyboard[:-2] + '[{"text": "Глава -", "callback_data": "%s"}],yy' % (m)
+            elif user_rate.chapters != 0:
+                keyboard = keyboard[:-2] + '[{"text": "Глава -", "callback_data": "%s"},' \
+                                           '{"text": "Глава +", "callback_data": "%s"}],yy' % (m, p)
+            else:
+                keyboard = keyboard[:-2] + '[{"text": "Глава +", "callback_data": "%s"}],yy' % (p)
             if user_rate.status == 3:
                 keyboard = keyboard[
                            :-2] + '[{"text": "Удалить из списка", "callback_data": "DeleteUserRatesManga// %s"}],yy' % user_rate.id
@@ -1012,7 +1041,8 @@ class MainManager:
             keyboard = '{"inline_keyboard": [['
             count = 0
             for anime in spisok:
-                message += str(i + 1) + ') ' + anime[0] + '/' + anime[1] + ' - ' + str(anime[2]) + '\n'
+                message += str(i + 1) + ') <b>' + anime[4] + '</b>: ' + anime[0] + '\n\b' + anime[1] + ' - ' + str(
+                    anime[2]) + '\n'
                 if count == 3:
                     keyboard = keyboard[:-1] + '],['
                     count = 0
@@ -1213,7 +1243,8 @@ class MainManager:
             i = 1
 
             for anime in spisok:
-                message += str(i) + ') ' + anime[0] + '/' + anime[1] + ' - ' + str(anime[2]) + '\n'
+                message += str(i) + ') <b>' + anime[4] + '</b>: ' + anime[0] + '\n\b' + anime[1] + ' - ' + str(
+                    anime[2]) + '\n'
                 arr.append({'text': i, 'id': anime[3]})
                 i += 1
                 if i == 10:
