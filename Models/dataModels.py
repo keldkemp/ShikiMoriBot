@@ -3,12 +3,13 @@ import datetime
 
 class Users:
     def __init__(self, id: int = None, token: str = None, refresh_token: str = None, tg_id: int = None,
-                list_settings: int = None):
+                list_settings: int = None, search: str = None):
         self.id = id
         self.token = token
         self.refresh_token = refresh_token
         self.tg_id = tg_id
         self.list_settings = list_settings
+        self.search = search
 
 
 class AnimeTypes:
@@ -44,6 +45,27 @@ class Anime:
         self.rating = rating
         self.updated_at = updated_at
         self.next_episode_at = next_episode_at
+        self.description = description
+        self.url = url
+
+
+class Manga:
+    def __init__(self, id: int = None, name: str = None, name_ru: str = None, name_jp: str = None,
+                kind: str = None, score: str = None, status: str = None,
+                volumes: int = None, chapters: int = None, aired_on: datetime = None,
+                released_on: datetime = None, description: str = None, url: str = None,
+              ):
+        self.id = id
+        self.name = name
+        self.name_ru = name_ru
+        self.name_jp = name_jp
+        self.kind = kind
+        self.score = score
+        self.status = status
+        self.volumes = volumes
+        self.chapters = chapters
+        self.aired_on = aired_on
+        self.released_on = released_on
         self.description = description
         self.url = url
 
