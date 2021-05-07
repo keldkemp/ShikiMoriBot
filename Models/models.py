@@ -130,6 +130,7 @@ class Anime(BaseModel):
         self.next_episode_at = self.DATETIME
         self.description = self.TEXT
         self.url = self.VARCHAR(1024)
+        self.franchise = self.VARCHAR(1024)
 
 
 class Manga(BaseModel):
@@ -147,6 +148,7 @@ class Manga(BaseModel):
         self.released_on = self.DATE
         self.description = self.TEXT
         self.url = self.VARCHAR(1024)
+        self.franchise = self.VARCHAR(1024)
 
 
 class UserRates(BaseModel):

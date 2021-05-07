@@ -129,6 +129,12 @@ def razbor(last_chat_id, call_back_id, last_text, message_id):
             ls = last_text.split(' ')
             mainManager.get_info_about_anime(tg_id=last_chat_id, msg_id=message_id,
                                              user_rate_id=int(ls[1]), msg=last_text)
+        elif last_text.find('anime_franchise_d') != -1:
+            telegram.answer_callback(call_back_id)
+            mainManager.get_info_about_anime_franchise(tg_id=last_chat_id, msg_id=message_id, msg=last_text)
+        elif last_text.find('anime_franchise') != -1:
+            telegram.answer_callback(call_back_id)
+            mainManager.get_anime_franchise(tg_id=last_chat_id, msg_id=message_id, msg=last_text)
         elif last_text.find('manga_detail') != -1:
             telegram.answer_callback(call_back_id)
             ls = last_text.split(' ')
@@ -215,7 +221,7 @@ if __name__ == '__main__':
                 continue
             last_update_id = result[0]['update_id']
             offset = last_update_id + 1
-        except:
+        except Exception as e:
             continue
 
         try:

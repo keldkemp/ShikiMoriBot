@@ -78,12 +78,20 @@ class MainManager:
                 name = anime.get('name').replace("'", '')
             else:
                 name = anime.get('name')
-            ls.append(Anime(id=anime.get('id'), name=name, name_ru=anime.get('russian'),
+            if anime.get('russian').find("'") != -1:
+                name_ru = anime.get('russian').replace("'", '')
+            else:
+                name_ru = anime.get('russian')
+            if anime.get('franchise') is None or anime.get('franchise') == 'None':
+                franchise = None
+            else:
+                franchise = anime.get('franchise')
+            ls.append(Anime(id=anime.get('id'), name=name, name_ru=name_ru,
                             name_jp=name_jp, kind=anime.get('kind'), score=anime.get('score'),
                             status=anime.get('status'), episodes=anime.get('episodes'),
                             episodes_aired=anime.get('episodes_aired'), rating=rating,
                             description=description, updated_at=updated_at, aired_on=aried_on, released_on=released_on,
-                            next_episode_at=next_episode_at, url=url))
+                            next_episode_at=next_episode_at, url=url, franchise=franchise))
         return ls
 
     def __convert_json_to_manga(self, list_manga: list) -> list:
@@ -612,6 +620,71 @@ class MainManager:
         self.__tg.edit_msg(chat_id=tg_id, msg='Манга добавлено в список!',
                            message_id=msg_id, reply_markup=self.MY_MANGA_LIST_KEYBOARD_TG)
 
+    def get_anime_franchise(self, tg_id: int, msg_id: int, msg: str):
+        msg = msg.split(' ')
+        user_rate_id = int(msg[1])
+        page = int(msg[2])
+        try:
+            flag = msg[3] + ' ' + msg[4]
+        except:
+            flag = msg[3]
+
+        user = self.__db.get_user(tg_id=tg_id)
+        if not self.__auth_in_shiki(user=user):
+            self.__not_auth_in_shiki(user=user)
+            return 0
+
+        user = self.__db.get_user(tg_id=tg_id)
+        user_rate = self.__db.get_info_user_rate(id=user_rate_id)
+        anime_id = user_rate.target_id
+        anime = self.__db.get_info_anime(id=anime_id)
+        anime_franchise = self.__shiki.get_anime_search(token=user.token, franchise=anime.franchise, limit=9,
+                                                        page=page, order='aired_on')
+        anime_franchise = self.__convert_json_to_anime(list_anime=anime_franchise)
+
+        msg = ''
+        keyboard = '{"inline_keyboard": [['
+        i = 1 + (page - 1) * 9
+        k = i
+        count = 0
+
+        for anime in anime_franchise:
+            msg += f'{i}) {anime.name}/{anime.name_ru}\n'
+            if count == 3:
+                keyboard = keyboard[:-1] + '],['
+                count = 0
+            keyboard += '{"text": %i, "callback_data": "anime_franchise_d %i %i %i %s"},' % (i, anime.id,
+                                                                                             user_rate_id, page, flag)
+            i += 1
+            count += 1
+
+        if len(anime_franchise) == 0 and page != 1:
+            msg = 'Дальше аниме нет!'
+            keyboard = keyboard[
+                       :-1] + '[{"text": "Назад", "callback_data": "anime_franchise %i %i %s"}]]}' % (user_rate_id,
+                                                                                                      page - 1, flag)
+        elif len(anime_franchise) < 9 and page != 1:
+            keyboard = keyboard[
+                       :-1] + '],[{"text": "Назад", "callback_data": "anime_franchise %i %i %s"}]]}' % (
+                           user_rate_id, page - 1, flag)
+        elif k == 1 and len(anime_franchise) >= 9:
+            keyboard = keyboard[
+                       :-1] + '],[{"text": "Далее", "callback_data": "anime_franchise %i %i %s"}]]}' % (user_rate_id,
+                                                                                                        page + 1, flag)
+        elif len(anime_franchise) < 9:
+            keyboard = keyboard[:-1] + ']]}'
+        else:
+            keyboard = keyboard[:-1] + '],[{"text": "Назад", "callback_data": "anime_franchise %i %i %s"},' \
+                                       '{"text": "Далее", "callback_data": "anime_franchise %i %i %s"}]]}' % (
+                           user_rate_id, page - 1, flag, user_rate_id, page + 1, flag)
+        keyboard = keyboard[:-2] + ',[{"text": "Назад к Аниме", "callback_data": "anime_detail %i %s"}]]}' % (
+            user_rate_id, flag)
+        keyboard = keyboard[:-2] + ',[{"text": "Main", "callback_data": "%s"}]]}' % 'Main//'
+        if msg_id is None:
+            self.__tg.send_msg(chat_id=tg_id, msg=msg, reply_markup=keyboard)
+        else:
+            self.__tg.edit_msg(chat_id=tg_id, msg=msg, reply_markup=keyboard, message_id=msg_id)
+
     def search_main_anime_or_manga(self, tg_id: int, flag: str) -> None:
         if flag == 'SearchAnime//':
             msg = 'Введите название Аниме'
@@ -796,11 +869,49 @@ class MainManager:
         message += f'Url: {manga.url}\n\nОписание:\n{manga.description}'
         self.__tg.edit_msg(chat_id=tg_id, msg=message, message_id=msg_id, reply_markup=keyboard)
 
+    def get_info_about_anime_franchise(self, tg_id: int, msg_id: int, msg: str):
+        msg = msg.split(' ')
+        anime_id = int(msg[1])
+        user_rate_id = int(msg[2])
+        page = int(msg[3])
+        try:
+            flag = msg[4] + ' ' + msg[5]
+        except:
+            flag = msg[4]
+
+        user = self.__db.get_user(tg_id=tg_id)
+        self.get_info_about_anime_in_shiki(anime_list=[anime_id], tg_id=tg_id)
+
+        anime = self.__db.get_info_anime(id=anime_id)
+        is_my_list = self.__db.is_anime_added_user_rate(anime_id=anime_id, id_user=user.id)
+
+        status = anime.status
+        message = f'Название: {anime.name}\nНазвание_ru: {anime.name_ru}\nСтатус: {anime.status}\n' \
+                  f'Рейтинг: {anime.rating}\nТип: {anime.kind}\n'
+        if status == 'ongoing':
+            message += f'Дата выхода эпизода: {datetime.datetime.strftime(anime.next_episode_at, "%Y-%m-%d")}\n'
+            message += f'Ко-во вышедших эпизодов: {anime.episodes_aired}\n'
+        message += f'Всего эпизодов: {anime.episodes}\n'
+        if status != 'anons':
+            message += f'Дата выхода: {datetime.datetime.strftime(anime.aired_on, "%Y-%m-%d")}\n'
+        message += f'Оценка: {anime.score}\nUrl: {anime.url}\n\nОписание:\n{anime.description}'
+
+        if not is_my_list:
+            keyboard = '{"inline_keyboard": [[{"text": "Добавить в список", "callback_data": "add_user_rate %i"}],' % \
+                       anime_id
+        else:
+            keyboard = '{"inline_keyboard": ['
+        keyboard = keyboard + '[{"text": "Назад", "callback_data": "anime_franchise %i %i %s"}]]}' % (user_rate_id,
+                                                                                                           page, flag)
+        self.__tg.edit_msg(chat_id=user.tg_id, msg=message, message_id=msg_id, reply_markup=keyboard)
+
     def get_info_about_anime(self, tg_id: int, msg_id: int, user_rate_id: int, msg: str):
         msg = msg.split(' ')
         user = self.__db.get_user(tg_id=tg_id)
         user_rate = self.__db.get_info_user_rate(id=user_rate_id)
         anime = self.__db.get_info_anime(id=user_rate.target_id)
+        anime_franchise = self.__shiki.get_anime_search(token=user.token, franchise=anime.franchise, limit=9,
+                                                        page=1, order='aired_on', timeout=3)
         status = anime.status
         message = f'Название: {anime.name}\nНазвание_ru: {anime.name_ru}\nСтатус: {anime.status}\n' \
                   f'Рейтинг: {anime.rating}\nТип: {anime.kind}\n'
@@ -842,6 +953,14 @@ class MainManager:
                            :-2] + '[{"text": "Поставить оценку", "callback_data": "%s"}],yy' % set_score
         else:
             keyboard = '{"inline_keyboard": [[['
+        if len(anime_franchise) > 0:
+            try:
+                keyboard = keyboard[:-2] + '[{"text": "Франшиза", "callback_data": "anime_franchise %s %i %s"}], yy' % (
+                    user_rate_id, 1, msg[2] + ' ' + msg[3])
+            except:
+                keyboard = keyboard[:-2] + '[{"text": "Франшиза", "callback_data": "anime_franchise %s %i %s"}], yy' % (
+                    user_rate_id, 1, msg[2])
+        #keyboard = keyboard[:-2] + '[{"text": "Похожие", "callback_data": "anime_similar %i"}], yy' % anime.id
         try:
             keyboard = keyboard[:-2] + '[{"text": "Назад", "callback_data": "%s"}]]}' % (msg[2] + ' ' + msg[3])
         except:
@@ -854,6 +973,7 @@ class MainManager:
         user_rate = self.__db.get_info_user_rate(id=user_rate_id)
         manga = self.__db.get_info_manga(id=user_rate.target_id)
         status = manga.status
+
         message = f'Название: {manga.name}\nНазвание_ru: {manga.name_ru}\nСтатус: {manga.status}\n' \
                   f'Тип: {manga.kind}\n'
         if status == 'ongoing':

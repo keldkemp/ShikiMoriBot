@@ -30,7 +30,7 @@ class Anime:
                 episodes: int = None, episodes_aired: int = None, aired_on: datetime = None,
                 released_on: datetime = None, rating: str = None, updated_at: datetime = None,
                 next_episode_at: datetime = None, description: str = None, url: str = None,
-              ):
+                franchise: str = None):
         self.id = id
         self.name = name
         self.name_ru = name_ru
@@ -47,6 +47,7 @@ class Anime:
         self.next_episode_at = next_episode_at
         self.description = description
         self.url = url
+        self.franchise = franchise
 
 
 class Manga:
@@ -54,7 +55,7 @@ class Manga:
                 kind: str = None, score: str = None, status: str = None,
                 volumes: int = None, chapters: int = None, aired_on: datetime = None,
                 released_on: datetime = None, description: str = None, url: str = None,
-              ):
+                franchise: str = None):
         self.id = id
         self.name = name
         self.name_ru = name_ru
@@ -68,6 +69,7 @@ class Manga:
         self.released_on = released_on
         self.description = description
         self.url = url
+        self.franchise = franchise
 
 
 class UserRates:

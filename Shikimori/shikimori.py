@@ -80,10 +80,12 @@ class Shikimori:
         js = ses.get(self.__BASE_URL_V1 + f'animes/{id_anime}', headers={'User-Agent': self.__client_name})
         return json.loads(js.text)
 
-    def get_anime_search(self, search: str, token: str, limit: int = 50, page: int = 1, order: str = 'ranked') -> list:
+    def get_anime_search(self, token: str, limit: int = 50, page: int = 1, order: str = 'ranked',
+                         search: str = '', franchise: str = '', timeout: int = None) -> list:
         ses = Session()
-        js = ses.get(self.__BASE_URL_V1 + f'animes?limit={limit}&order={order}&search={search}&page={page}',
-                     headers=self.__get_headers(token=token))
+        js = ses.get(self.__BASE_URL_V1 + f'animes?limit={limit}&order={order}&search={search}&page={page}'
+                                          f'&franchise={franchise}',
+                     headers=self.__get_headers(token=token), timeout=(timeout, timeout))
         return json.loads(js.text)
 
     def get_manga_search(self, search: str, token: str, limit: int = 50, page: int = 1, order: str = 'ranked') -> list:
@@ -95,6 +97,11 @@ class Shikimori:
     def get_anime_similar(self, id_anime: int, token: str) -> list:
         ses = Session()
         js = ses.get(self.__BASE_URL_V1 + f'animes/{id_anime}/similar', headers=self.__get_headers(token=token))
+        return json.loads(js.text)
+
+    def get_anime_franchise(self, id_anime: int, token: str) -> dict:
+        ses = Session()
+        js = ses.get(self.__BASE_URL_V1 + f'animes/{id_anime}/franchise', headers=self.__get_headers(token=token))
         return json.loads(js.text)
 
     def get_manga_similar(self, id_manga: int, token: str) -> list:

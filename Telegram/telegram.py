@@ -2,6 +2,7 @@
 Класс для работы с Telegram.
 Для инициализации необходимо передать Токен.
 """
+from time import sleep
 import requests
 import json
 
@@ -13,7 +14,10 @@ class Telegram:
 
     def delete_msg(self, chat_id, message_id):
         data = {'chat_id': chat_id, 'message_id': message_id}
-        r = self.session.post(self.__BASE_URL + 'deleteMessage', data=data)
+        try:
+            r = self.session.post(self.__BASE_URL + 'deleteMessage', data=data)
+        except requests.exceptions.ConnectionError:
+            r = self.session.post(self.__BASE_URL + 'deleteMessage', data=data)
         return json.loads(r.text)
 
     def edit_msg(self, chat_id, message_id, msg, reply_markup=None):
@@ -22,7 +26,10 @@ class Telegram:
         else:
             data = {'chat_id': chat_id, 'message_id': message_id, 'text': msg, 'parse_mode': 'HTML',
                     'reply_markup': reply_markup}
-        r = self.session.post(self.__BASE_URL + 'editMessageText', data=data)
+        try:
+            r = self.session.post(self.__BASE_URL + 'editMessageText', data=data)
+        except requests.exceptions.ConnectionError:
+            r = self.session.post(self.__BASE_URL + 'editMessageText', data=data)
         return json.loads(r.text)
 
     def send_msg(self, chat_id, msg, reply_markup=None):
@@ -30,7 +37,10 @@ class Telegram:
             data = {'chat_id': chat_id, 'text': msg, 'parse_mode': 'HTML'}
         else:
             data = {'chat_id': chat_id, 'text': msg, 'parse_mode': 'HTML', 'reply_markup': reply_markup}
-        r = self.session.post(self.__BASE_URL + 'sendMessage', data=data)
+        try:
+            r = self.session.post(self.__BASE_URL + 'sendMessage', data=data)
+        except requests.exceptions.ConnectionError:
+            r = self.session.post(self.__BASE_URL + 'sendMessage', data=data)
         return json.loads(r.text)
 
     def get_updates(self, timeout=30, offset=None):
@@ -38,14 +48,19 @@ class Telegram:
             data = {'timeout': timeout, 'offset': offset}
             r = self.session.post(self.__BASE_URL + 'getUpdates', data=data)
             return json.loads(r.text)['result']
-        except ConnectionError:
+        except requests.ConnectionError:
+            sleep(10)
             print('ConnectionError GetUpdates')
             pass
 
     def answer_callback(self, id):
         data = {'callback_query_id': id}
-        r = self.session.post(self.__BASE_URL + 'answerCallbackQuery', data=data)
-        return json.loads(r.text)
+        try:
+            r = self.session.post(self.__BASE_URL + 'answerCallbackQuery', data=data)
+            return json.loads(r.text)
+        except requests.exceptions.ConnectionError:
+            r = self.session.post(self.__BASE_URL + 'answerCallbackQuery', data=data)
+            return json.loads(r.text)
 
     def __init__(self, token: str):
         self.__TOKEN = token
