@@ -63,6 +63,16 @@ def razbor(last_chat_id, call_back_id, last_text, message_id):
     if DBManager.is_user(tg_id=int(last_chat_id)):
         if last_text.lower().find('список аниме') != -1:
             mainManager.get_my_list_anime(tg_id=last_chat_id)
+        elif last_text.lower() == 'аниме по сезонам':
+            mainManager.get_anime_seasons(tg_id=last_chat_id)
+        elif last_text.isdigit():
+            mainManager.get_anime_seasons(tg_id=last_chat_id, year=int(last_text), msg_id=message_id)
+        elif last_text.find('seasons//') != -1:
+            mainManager.get_anime_seasons_in_shiki(tg_id=last_chat_id, msg_id=message_id, msg=last_text)
+            telegram.answer_callback(call_back_id)
+        elif last_text.find('anime_seasons') != -1:
+            mainManager.get_anime_seasons_result(tg_id=last_chat_id, msg_id=message_id, msg=last_text)
+            telegram.answer_callback(call_back_id)
         elif last_text == 'SearchAnime//' or last_text == 'SearchManga//':
             telegram.answer_callback(call_back_id)
             mainManager.search_main_anime_or_manga(tg_id=last_chat_id, flag=last_text)

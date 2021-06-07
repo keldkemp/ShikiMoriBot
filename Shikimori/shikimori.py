@@ -81,10 +81,10 @@ class Shikimori:
         return json.loads(js.text)
 
     def get_anime_search(self, token: str, limit: int = 50, page: int = 1, order: str = 'ranked',
-                         search: str = '', franchise: str = '', timeout: int = None) -> list:
+                         search: str = '', franchise: str = '', season: str = '', timeout: int = None) -> list:
         ses = Session()
         js = ses.get(self.__BASE_URL_V1 + f'animes?limit={limit}&order={order}&search={search}&page={page}'
-                                          f'&franchise={franchise}',
+                                          f'&franchise={franchise}&season={season}',
                      headers=self.__get_headers(token=token), timeout=(timeout, timeout))
         return json.loads(js.text)
 

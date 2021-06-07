@@ -12,6 +12,7 @@ import re
 
 class MainManager:
     MAIN_KEYBOARD_TG = json.dumps({'keyboard': [[{'text': 'Мой список Аниме'}],
+                                                [{'text': 'Аниме по сезонам'}],
                                                 [{'text': 'Мой список Манги'}],
                                                 [{'text': 'Настройки'}]],
                                    'resize_keyboard': True, 'one_time_keyboard': True})
@@ -554,6 +555,7 @@ class MainManager:
             else:
                 self.get_info_about_manga(tg_id=tg_id, msg_id=message_id, user_rate_id=user_rate_id, msg=other)
 
+    #TODO: Сделать уведомления по пользователю, иначе приходит вообще по всем
     def update_anime_and_manga(self):
         animes = self.__db.get_anime_id_list_for_update()
         self.get_info_about_anime_in_shiki(anime_list=animes)
@@ -693,6 +695,116 @@ class MainManager:
             msg = 'Введите название Манги'
             self.__db.update_user(tg_id=tg_id, search='manga_search///')
         self.__tg.send_msg(chat_id=tg_id, msg=msg)
+
+    def get_anime_seasons(self, tg_id: int, year: int = None, msg_id: int = None):
+        if msg_id is None:
+            msg = 'Введите год:'
+            self.__tg.send_msg(chat_id=tg_id, msg=msg)
+        else:
+            if year < 1900:
+                self.__tg.send_msg(chat_id=tg_id, msg='Введите год больше 1900!')
+            else:
+                msg = 'Выберите сезон:\n\n'
+                keyboard = '{"inline_keyboard": [[{"text": "Зимний сезон", "callback_data": "seasons// winter %i"}], ' \
+                           '[{"text": "Весенний сезон", "callback_data": "seasons// spring %i"}],' \
+                           '[{"text": "Летний сезон", "callback_data": "seasons// summer %i"}],' \
+                           '[{"text": "Осенний сезон", "callback_data": "seasons// fall %i"}],' \
+                           '[{"text": "За весь год", "callback_data": "seasons// None %i"}]]}' % (year, year, year, year, year)
+                self.__tg.send_msg(chat_id=tg_id, msg=msg, reply_markup=keyboard)
+
+    def get_anime_seasons_result(self, tg_id: int, msg: str, msg_id: int):
+        split = msg.split(' ')
+        anime_id = int(split[1])
+        page = int(split[4])
+        seasons = split[2]
+        year = split[3]
+
+        user = self.__db.get_user(tg_id=tg_id)
+        is_anime_added = self.__db.is_anime_added_user_rate(anime_id=anime_id, id_user=user.id)
+
+        if is_anime_added:
+            keyboard = '{"inline_keyboard": [[{"text": "Похожие", "callback_data": "anime_similar %i"}],' \
+                       '[{"text": "Назад", "callback_data": "seasons// %s %s %i"}]]}' % (anime_id, seasons, year, page)
+        else:
+            keyboard = '{"inline_keyboard": [[{"text": "Добавить в список", "callback_data": "add_user_rate %i"}], ' \
+                       '[{"text": "Похожие", "callback_data": "anime_similar %i"}],' \
+                       '[{"text": "Назад", "callback_data": "seasons// %s %s %i"}]]}' % (anime_id, anime_id, seasons, year, page)
+        keyboard = keyboard[:-2] + ',[{"text": "Main", "callback_data": "%s"}]]}' % 'Main//'
+
+        if not self.__db.is_anime_in_bd(anime_id=anime_id):
+            self.get_info_about_anime_in_shiki(anime_list=[anime_id], tg_id=tg_id)
+        anime = self.__db.get_info_anime(anime_id)
+        status = anime.status
+
+        message = f'Название: {anime.name}\nНазвание_ru: {anime.name_ru}\nСтатус: {anime.status}\n' \
+                  f'Рейтинг: {anime.rating}\nТип: {anime.kind}\n'
+        if status == 'ongoing':
+            message += f'Дата выхода эпизода: {datetime.datetime.strftime(anime.next_episode_at, "%Y-%m-%d")}\n'
+            message += f'Ко-во вышедших эпизодов: {anime.episodes_aired}\n'
+        message += f'Всего эпизодов: {anime.episodes}\n'
+        if status != 'anons':
+            message += f'Дата выхода: {datetime.datetime.strftime(anime.aired_on, "%Y-%m-%d")}\n'
+        message += f'Оценка: {anime.score}\nUrl: {anime.url}\n\nОписание:\n{anime.description}'
+        self.__tg.edit_msg(chat_id=tg_id, msg=message, message_id=msg_id, reply_markup=keyboard)
+
+    def get_anime_seasons_in_shiki(self, tg_id: int, msg: str, msg_id: int = None):
+        split = msg.split(' ')
+
+        if split[1] == 'None':
+            season = None
+        else:
+            season = split[1]
+        year = split[2]
+        if len(split) == 3:
+            page = 1
+        else:
+            page = int(split[3])
+
+        user = self.__db.get_user(tg_id=tg_id)
+        if not self.__auth_in_shiki(user=user):
+            self.__not_auth_in_shiki(user=user)
+            return 0
+        user = self.__db.get_user(tg_id=tg_id)
+
+        if season is not None:
+            anime_list = self.__shiki.get_anime_search(token=user.token, limit=9, page=page, season=season + '_' + year)
+        else:
+            anime_list = self.__shiki.get_anime_search(token=user.token, limit=9, page=page, season=year)
+        anime_list = self.__convert_json_to_anime(list_anime=anime_list)
+        msg = f'Сезон: {season}, Год: {year}\n\nЧто нашел:\n'
+        keyboard = '{"inline_keyboard": [['
+        if msg_id is not None:
+            i = 1 + (page - 1) * 9
+        else:
+            i = 1
+        k = i
+        count = 0
+
+        for anime in anime_list:
+            msg += f'{i}) {anime.name}/{anime.name_ru}\n'
+            if count == 3:
+                keyboard = keyboard[:-1] + '],['
+                count = 0
+            keyboard += '{"text": %i, "callback_data": "anime_seasons %i %s %s %i"},' % (i, anime.id, season, year, page)
+            i += 1
+            count += 1
+
+        if len(anime_list) == 0:
+            msg = 'Дальше аниме нет'
+            keyboard = keyboard[
+                       :-1] + '[{"text": "Назад", "callback_data": "seasons// %s %s %i"}]]}' % (season, year, page - 1)
+        elif k == 1:
+            keyboard = keyboard[
+                       :-1] + '],[{"text": "Далее", "callback_data": "seasons// %s %s %i"}]]}' % (season, year, page + 1)
+        else:
+            keyboard = keyboard[:-1] + '],[{"text": "Назад", "callback_data": "seasons// %s %s %i"},' \
+                                       '{"text": "Далее", "callback_data": "seasons// %s %s %i"}]]}' % (
+                           season, year, page - 1, season, year, page + 1)
+        keyboard = keyboard[:-2] + ',[{"text": "Main", "callback_data": "%s"}]]}' % 'Main//'
+        if msg_id is None:
+            self.__tg.send_msg(chat_id=tg_id, msg=msg, reply_markup=keyboard)
+        else:
+            self.__tg.edit_msg(chat_id=tg_id, msg=msg, reply_markup=keyboard, message_id=msg_id)
 
     def search_anime_in_shiki(self, tg_id: int, msg: str, msg_id: int = None):
         if msg_id is not None:
@@ -1371,6 +1483,7 @@ class MainManager:
                     break
 
             keyboard = self.__generate_3_keyboard(array=arr, param='ListAnimePlaned//', all=len(spisok))
+            #keyboard = keyboard[:-2] + ', [{"text": "Фильтр", "callback_data": "Filter//"}]]}'
         elif flag == 'ListAnimeCompleted//':
             spisok = self.__db.get_my_list_anime(status='completed', user_id=user.id)
             message = f'Аниме просмотренно {len(spisok)}:\nНазвание\n\n'

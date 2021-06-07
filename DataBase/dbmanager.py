@@ -21,6 +21,13 @@ class DataBaseManager:
             attr = None
         return attr
 
+    def get_anime_status(self) -> list:
+        res = self.__db.select("select status from anime group by status order by status")
+        ls = []
+        for l in res:
+            ls.append(l[0])
+        return ls
+
     def get_settings_list(self, id: int = None) -> list[SettingsListAnime]:
         ls = []
         if id is None:
