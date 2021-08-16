@@ -1,5 +1,6 @@
 import threading
 import sys
+import datetime
 from DataBase.dbmanager import DataBaseManager
 from DataBase.postgresql import DataBasePg
 from Shikimori.shikimori import Shikimori
@@ -223,8 +224,13 @@ if __name__ == '__main__':
     offset = None
     call_back_id = None
     admin_id = 453256909
+    date = datetime.date.today()
 
     while True:
+        if date < datetime.date.today():
+            mainManager.update_anime_and_manga()
+            print('SUCCSES')
+            date = datetime.date.today()
         try:
             result = telegram.get_updates(offset=offset)
             if not result:

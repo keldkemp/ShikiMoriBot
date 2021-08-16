@@ -3,20 +3,34 @@
 Настройки берутся из файла
 """
 import json
+import os
 from abc import ABC
 
 
 # Абстрактный класс по работе с настройками
 class Settings(ABC):
+    __FILE_NAME = 'settings.json'
 
     def __read_file(self) -> json:
-        f = open('settings.json')
+        f = open(self.__FILE_NAME)
         str = f.read()
         f.close()
         return json.loads(str)
 
+    def __read_env(self) -> json:
+        dc = {}
+        dc['telegram_token'] = os.environ['telegram_token']
+        dc['db_name'] = os.environ['db_name']
+        dc['db_user'] = os.environ['db_user']
+        dc['db_password'] = os.environ['db_password']
+        dc['host'] = os.environ['host']
+        dc['client_id'] = os.environ['client_id']
+        dc['client_secret'] = os.environ['client_secret']
+        dc['client_name'] = os.environ['client_name']
+        return dc
+
     def __init__(self):
-        json_settings = self.__read_file()
+        json_settings = self.__read_file() if os.path.exists(self.__FILE_NAME) else self.__read_env()
         self._token = json_settings['telegram_token']
         self._db_name = json_settings['db_name']
         self._db_user = json_settings['db_user']

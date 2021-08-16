@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:12.1
+    restart: always
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=AnimeBot
+      - POSTGRES_USER=AnimeBot
+      - POSTGRES_PASSWORD=AnimeBotPassword
+  app:
+    build: ./
+    restart: always
+    volumes:
+      - .:/code
+    depends_on:
+      - db

@@ -739,7 +739,8 @@ class MainManager:
         message = f'Название: {anime.name}\nНазвание_ru: {anime.name_ru}\nСтатус: {anime.status}\n' \
                   f'Рейтинг: {anime.rating}\nТип: {anime.kind}\n'
         if status == 'ongoing':
-            message += f'Дата выхода эпизода: {datetime.datetime.strftime(anime.next_episode_at, "%Y-%m-%d")}\n'
+            if anime.next_episode_at is not None:
+                message += f'Дата выхода эпизода: {datetime.datetime.strftime(anime.next_episode_at, "%Y-%m-%d")}\n'
             message += f'Ко-во вышедших эпизодов: {anime.episodes_aired}\n'
         message += f'Всего эпизодов: {anime.episodes}\n'
         if status != 'anons':

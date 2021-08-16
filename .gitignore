@@ -141,3 +141,5 @@ cython_debug/
 
 /settings.json
 /Models/dataModels.py
+/data
+/.idea
