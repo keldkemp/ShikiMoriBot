@@ -4,6 +4,7 @@
 """
 import json
 import os
+import urllib.parse as urlparse
 from abc import ABC
 
 
@@ -20,10 +21,17 @@ class Settings(ABC):
     def __read_env(self) -> json:
         dc = {}
         dc['telegram_token'] = os.environ['telegram_token']
-        dc['db_name'] = os.environ['db_name']
-        dc['db_user'] = os.environ['db_user']
-        dc['db_password'] = os.environ['db_password']
-        dc['host'] = os.environ['host']
+        if os.environ.get('db_name') is not None:
+            dc['db_name'] = os.environ['db_name']
+            dc['db_user'] = os.environ['db_user']
+            dc['db_password'] = os.environ['db_password']
+            dc['host'] = os.environ['host']
+        else:
+            url_db = urlparse.urlparse(os.environ['DATABASE_URL'])
+            dc['db_name'] = url_db.path[1:]
+            dc['db_user'] =url_db.username
+            dc['db_password'] = url_db.password
+            dc['host'] = url_db.hostname
         dc['client_id'] = os.environ['client_id']
         dc['client_secret'] = os.environ['client_secret']
         dc['client_name'] = os.environ['client_name']
