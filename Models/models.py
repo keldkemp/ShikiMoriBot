@@ -102,6 +102,7 @@ class Users(BaseModel):
         self.list_settings = self.INT
         self.search = self.VARCHAR(512)
         self.is_notify = self.INT
+        self.filter_anime = self.INT
         self.__FK = self.FK(attr_name='list_settings', table_name='SettingsListAnime')
 
 

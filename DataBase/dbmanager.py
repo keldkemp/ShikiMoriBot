@@ -3,6 +3,8 @@ from Models.dataModels import *
 
 
 class DataBaseManager:
+    __FILTER_ANIME = {1: 'anons', 2: 'ongoing', 3: 'released'}
+
     def get_attr_by_sort(self, user_id: int):
         res = self.__db.select(f'SELECT list_settings FROM users WHERE id = {user_id}')[0]
         if res[0] == 1:
@@ -44,11 +46,18 @@ class DataBaseManager:
     def set_settings_list(self, tg_id: int, list_settings: int):
         self.__db.insert_init(f'UPDATE users SET list_settings = {list_settings} WHERE tg_id = {tg_id}')
 
-    def update_user(self, tg_id: int, search: str = None) -> None:
+    def update_user(self, tg_id: int, search: str = None, is_notify: int = None, filter_anime: int = None) -> None:
+        user = self.get_user(tg_id=tg_id)
         if search is not None:
-            self.__db.insert_init(f"UPDATE USERS SET search = '{search}' WHERE tg_id = {tg_id}")
+            self.__db.insert_init(f"UPDATE USERS SET search = '{search}', "
+                                  f"is_notify = {is_notify if is_notify is not None else user.is_notify}, "
+                                  f"filter_anime = {filter_anime if filter_anime is None else 'null'} "
+                                  f"WHERE tg_id = {tg_id}")
         else:
-            self.__db.insert_init(f"UPDATE USERS SET search = null WHERE tg_id = {tg_id}")
+            self.__db.insert_init(f"UPDATE USERS SET search = null, "
+                                  f"is_notify = {is_notify if is_notify is not None else user.is_notify}, "
+                                  f"filter_anime = {filter_anime if filter_anime is not None else 'null'} "
+                                  f"WHERE tg_id = {tg_id}")
 
     def get_anime_id_list_for_update(self) -> list:
         res = self.__db.select("SELECT id FROM anime WHERE status <> 'released'")
@@ -111,11 +120,15 @@ class DataBaseManager:
                                    f"and r.status = s.id and s.name = '{status}' "
                                    f"order by {attr}")
         elif status == 'planned':
+            user = self.get_user(user_id=user_id)
             res = self.__db.select(f"SELECT a.name, a.name_ru, a.episodes, r.id, a.status "
                                    f"FROM userrates r, animestatus s, anime a "
                                    f"WHERE a.id = r.target_id and r.user_id = {user_id} "
                                    f"and r.status = s.id and s.name = '{status}' "
-                                   f"order by {attr}")
+                                   f"order by "
+                                   f"case when a.status = '{self.__FILTER_ANIME.get(user.filter_anime)}' then 1 end, "
+                                   f"{'a.status, ' if self.__FILTER_ANIME.get(user.filter_anime) is not None else ' '} "
+                                   f"{attr}")
         elif status == 'completed':
             res = self.__db.select(f"SELECT a.name, a.name_ru, a.episodes, r.id "
                                    f"FROM userrates r, animestatus s, anime a "
@@ -186,11 +199,15 @@ class DataBaseManager:
                                    f'fetch next 9 rows only'
                                    )
         elif status == 'planned':
+            user = self.get_user(user_id=user_id)
             res = self.__db.select(f"SELECT a.name, a.name_ru, a.episodes, r.id, a.status "
                                    f"FROM userrates r, animestatus s, anime a "
                                    f"WHERE a.id = r.target_id and r.user_id = {user_id} "
                                    f"and r.status = s.id and s.name = '{status}' "
-                                   f"order by {attr} "
+                                   f"order by "
+                                   f"case when a.status = '{self.__FILTER_ANIME.get(user.filter_anime)}' then 1 end, "
+                                   f"{'a.status, ' if self.__FILTER_ANIME.get(user.filter_anime) is not None else ' '} "
+                                   f"{attr} "
                                    f'offset {index} rows '
                                    f'fetch next 9 rows only'
                                    )
@@ -399,12 +416,15 @@ class DataBaseManager:
 
     def get_user(self, tg_id: int = None, user_id: int = None) -> Users:
         if tg_id is not None:
-            res = self.__db.select(f'SELECT id, token, refresh_token, tg_id, list_settings, search '
+            res = self.__db.select(f'SELECT id, token, refresh_token, tg_id, list_settings, search, is_notify, '
+                                   f'filter_anime '
                                    f'FROM USERS WHERE tg_id = {tg_id}')[0]
         else:
-            res = self.__db.select(f'SELECT id, token, refresh_token, tg_id, list_settings, search '
+            res = self.__db.select(f'SELECT id, token, refresh_token, tg_id, list_settings, search, is_notify, '
+                                   f'filter_anime '
                                    f'FROM USERS WHERE id = {user_id}')[0]
-        return Users(id=res[0], token=res[1], refresh_token=res[2], tg_id=res[3], list_settings=res[4], search=res[5])
+        return Users(id=res[0], token=res[1], refresh_token=res[2], tg_id=res[3], list_settings=res[4], search=res[5],
+                     is_notify=res[6], filter_anime=res[7])
 
     def get_user_search(self, tg_id: int) -> str:
         res = self.__db.select(f'SELECT search '
@@ -412,15 +432,15 @@ class DataBaseManager:
         return res[0]
 
     def get_all_user(self) -> list:
-        res = self.__db.select(f'SELECT id, token, refresh_token, tg_id, list_settings FROM USERS')
+        res = self.__db.select(f'SELECT id, token, refresh_token, tg_id, list_settings, is_notify FROM USERS')
         ls = []
         for r in res:
-            ls.append(Users(id=r[0], token=r[1], refresh_token=r[2], tg_id=r[3], list_settings=r[4]))
+            ls.append(Users(id=r[0], token=r[1], refresh_token=r[2], tg_id=r[3], list_settings=r[4], is_notify=r[5]))
         return ls
 
     def add_user(self, tg_id: int, token: str, refresh_token: str, user_id: int):
-        self.__db.insert_init(f'INSERT INTO USERS (id, token, refresh_token, tg_id, list_settings) VALUES '
-                              f"({user_id}, '{token}', '{refresh_token}', {tg_id}, 2) ON CONFLICT (id) DO UPDATE SET "
+        self.__db.insert_init(f'INSERT INTO USERS (id, token, refresh_token, tg_id, list_settings, is_notify) VALUES '
+                              f"({user_id}, '{token}', '{refresh_token}', {tg_id}, 2, 0) ON CONFLICT (id) DO UPDATE SET "
                               f"token = '{token}', refresh_token = '{refresh_token}'")
 
     def __init__(self, db: DataBasePg):
