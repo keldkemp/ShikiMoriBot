@@ -3,13 +3,15 @@ import datetime
 
 class Users:
     def __init__(self, id: int = None, token: str = None, refresh_token: str = None, tg_id: int = None,
-                list_settings: int = None, search: str = None):
+                list_settings: int = None, search: str = None, is_notify: int = None,
+              ):
         self.id = id
         self.token = token
         self.refresh_token = refresh_token
         self.tg_id = tg_id
         self.list_settings = list_settings
         self.search = search
+        self.is_notify = is_notify
 
 
 class AnimeTypes:

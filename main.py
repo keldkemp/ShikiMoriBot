@@ -8,33 +8,8 @@ from Telegram.telegram import Telegram
 from Utils.logging import Logging
 from Utils.utils import Utils
 from mainManager import MainManager
+from migrations import MigrationsDb
 from settings import SettingsTelegram, SettingsDb, SettingsShiki
-from Models.models import Users, AnimeTypes, AnimeStatus, Anime, UserRates, SettingsListAnime, Manga
-
-
-def init_db(db):
-    db.create_tables(command=SettingsListAnime().get_code())
-    db.insert_init(command=SettingsListAnime().get_init_data_code())
-    db.create_tables(command=Users().get_code())
-    db.create_tables(command=AnimeTypes().get_code())
-    db.insert_init(command=AnimeTypes().get_init_data_code())
-    db.create_tables(command=AnimeStatus().get_code())
-    db.insert_init(command=AnimeStatus().get_init_data_code())
-    db.create_tables(command=Anime().get_code())
-    db.create_tables(command=Manga().get_code())
-    db.create_tables(command=UserRates().get_code())
-
-
-def init_model():
-    f = open('Models/dataModels.py', 'w')
-    f.write('import datetime\n\n\n' + Users().get_data_model())
-    f.write('\n\n' + AnimeTypes().get_data_model())
-    f.write('\n\n' + AnimeStatus().get_data_model())
-    f.write('\n\n' + Anime().get_data_model())
-    f.write('\n\n' + Manga().get_data_model())
-    f.write('\n\n' + UserRates().get_data_model())
-    f.write('\n\n' + SettingsListAnime().get_data_model())
-    f.close()
 
 
 def get_value_in_dict(dc: dict, key: str):
@@ -203,13 +178,12 @@ if __name__ == '__main__':
     shiki_url = f'https://shikimori.one/oauth/authorize?client_id={settings_shiki["client_id"]}' \
                 f'&redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob&response_type=code&scope=user_rates'
     log = Logging()
-
     db = DataBasePg(dbname=settings_db['db_name'], user=settings_db['db_user'],
-                    password=settings_db['db_password'], host=settings_db['host'])
+                    password=settings_db['db_password'], host=settings_db['host'], port=int(settings_db['port']))
     telegram = Telegram(token=settings_tg['token'])
 
-    init_db(db=db)
-    init_model()
+    migrations = MigrationsDb(db=db)
+    migrations.run()
 
     DBManager = DataBaseManager(db=db)
     mainManager = MainManager(db=DBManager, tg=telegram, shiki=Shikimori(client_id=settings_shiki['client_id'],

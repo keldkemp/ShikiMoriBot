@@ -10,7 +10,7 @@ from abc import ABC
 
 # Абстрактный класс по работе с настройками
 class Settings(ABC):
-    __FILE_NAME = 'settings.json'
+    __FILE_NAME = 'settings1.json'
 
     def __read_file(self) -> json:
         f = open(self.__FILE_NAME)
@@ -25,6 +25,7 @@ class Settings(ABC):
             dc['db_name'] = os.environ['db_name']
             dc['db_user'] = os.environ['db_user']
             dc['db_password'] = os.environ['db_password']
+            dc['port'] = os.environ['db_port']
             dc['host'] = os.environ['host']
         else:
             url_db = urlparse.urlparse(os.environ['DATABASE_URL'])
@@ -32,6 +33,7 @@ class Settings(ABC):
             dc['db_user'] =url_db.username
             dc['db_password'] = url_db.password
             dc['host'] = url_db.hostname
+            dc['port'] = url_db.port
         dc['client_id'] = os.environ['client_id']
         dc['client_secret'] = os.environ['client_secret']
         dc['client_name'] = os.environ['client_name']
@@ -44,6 +46,10 @@ class Settings(ABC):
         self._db_user = json_settings['db_user']
         self._db_password = json_settings['db_password']
         self._host = json_settings['host']
+        if 'port' in json_settings:
+            self._port = json_settings['port']
+        else:
+            self._port = '5432'
         self._client_id = json_settings['client_id']
         self._client_secret = json_settings['client_secret']
         self._client_name = json_settings['client_name']
@@ -60,7 +66,7 @@ class SettingsTelegram(Settings):
 class SettingsDb(Settings):
     def get_settings_db(self) -> dict:
         list = {'db_name': self._db_name, 'db_user': self._db_user, 'db_password': self._db_password,
-                'host': self._host}
+                'host': self._host, 'port': self._port}
         return list
 
 

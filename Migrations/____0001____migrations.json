@@ -1,0 +1,6 @@
+{
+ "name": "ADD column in Users",
+ "author": "Admin",
+ "type": "sql",
+ "command": "ALTER TABLE USERS ADD is_notify INTEGER"
+} 

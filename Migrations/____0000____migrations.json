@@ -1,0 +1,6 @@
+{
+ "name": "init DB",
+ "author": "Admin",
+ "type": "class",
+ "command": "all"
+}

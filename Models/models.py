@@ -55,15 +55,18 @@ class BaseModel(abc.ABC):
     def get_code(self) -> str:
         attr = self.get_attr()
         table_name = self.__class__.__name__
+        init_command = ''
         command = f'CREATE TABLE {table_name} ('
         for k, v in attr.items():
             if k.find('init_data') != -1:
+                for k1, v1 in attr.get('init_data').items():
+                    init_command += f"INSERT INTO {table_name} VALUES ({k1}, '{v1}'); "
                 continue
             if k.find('FK') != -1:
                 command += v + ', '
             else:
                 command += k + ' ' + v + ', '
-        command = command[:-2] + ')'
+        command = command[:-2] + '); ' + init_command
         return command
 
     def get_init_data_code(self):
@@ -76,6 +79,9 @@ class BaseModel(abc.ABC):
         for k, v in init_data.items():
             command += f"INSERT INTO {table_name} VALUES ({k}, '{v}'); "
         return command
+
+    def __str__(self):
+        return self.__class__.__name__
 
 
 class SettingsListAnime(BaseModel):
@@ -95,6 +101,7 @@ class Users(BaseModel):
         self.tg_id = self.BIGINT
         self.list_settings = self.INT
         self.search = self.VARCHAR(512)
+        self.is_notify = self.INT
         self.__FK = self.FK(attr_name='list_settings', table_name='SettingsListAnime')
 
 

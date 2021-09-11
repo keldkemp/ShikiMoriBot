@@ -24,6 +24,14 @@
   "client_secret": "client secret Shiki",<br>
   "client_name": "client name Shiki"
 }
-   </code>
+</code><br>
+Либо использовать переменные окружения:<br>
+<code>
+'telegram_token'
+'DATABASE_URL'
+'client_id'
+'client_secret'
+'client_name'
+</code>
    
    
