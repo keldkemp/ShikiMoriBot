@@ -1,0 +1,6 @@
+{
+ "name": "Add new column in User",
+ "author": "Admin",
+ "type": "sql",
+ "command": "ALTER TABLE USERS ADD COLUMN filter_anime INTEGER"
+} 

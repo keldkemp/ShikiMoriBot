@@ -1,10 +1,16 @@
 import datetime
 
 
+class SettingsListAnime:
+    def __init__(self, id: int = None, name: str = None):
+        self.id = id
+        self.name = name
+
+
 class Users:
     def __init__(self, id: int = None, token: str = None, refresh_token: str = None, tg_id: int = None,
                 list_settings: int = None, search: str = None, is_notify: int = None,
-              ):
+                filter_anime: int = None):
         self.id = id
         self.token = token
         self.refresh_token = refresh_token
@@ -12,6 +18,7 @@ class Users:
         self.list_settings = list_settings
         self.search = search
         self.is_notify = is_notify
+        self.filter_anime = filter_anime
 
 
 class AnimeTypes:
@@ -93,9 +100,3 @@ class UserRates:
         self.text = text
         self.created_at = created_at
         self.updated_at = updated_at
-
-
-class SettingsListAnime:
-    def __init__(self, id: int = None, name: str = None):
-        self.id = id
-        self.name = name

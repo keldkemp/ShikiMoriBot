@@ -18,6 +18,7 @@ class MainManager:
                                    'resize_keyboard': True, 'one_time_keyboard': True})
     SETTIGNS_KEYBOARD_TG = json.dumps(
         {'inline_keyboard': [[{'text': 'Отображение списка', 'callback_data': 'ChangeListSettings//'}],
+                             [{'text': ':is_notify_text', 'callback_data': 'ChangeNotify// :is_notify_param'}],
                              [{'text': 'Удалить аккаунт', 'callback_data': 'DeleteAccount//'}]]})
     MY_ANIME_LIST_KEYBOARD_TG = json.dumps(
         {'inline_keyboard': [[{'text': 'Обновить список', 'callback_data': 'UpdateListAnime//'}],
@@ -220,8 +221,15 @@ class MainManager:
         msg = 'Настройки\n'
         user = self.__db.get_user(tg_id=tg_id)
         setting_list = self.__db.get_settings_list(user.list_settings)
-        msg += f'tg_id: {user.tg_id}\nuser_shiki_id: {user.id}\nОтображение списка: {setting_list[0].name}'
-        self.__tg.send_msg(chat_id=user.tg_id, msg=msg, reply_markup=self.SETTIGNS_KEYBOARD_TG)
+        msg += f'tg_id: {user.tg_id}\nuser_shiki_id: {user.id}\nОтображение списка: {setting_list[0].name}' \
+               f'\nУведомлять о выходе всех серий: {True if user.is_notify == 1 else False}'
+        if user.is_notify == 1:
+            user_keyboard = self.SETTIGNS_KEYBOARD_TG.replace(':is_notify_text', 'Отключить уведомления')\
+                .replace(':is_notify_param', '0')
+        else:
+            user_keyboard = self.SETTIGNS_KEYBOARD_TG.replace(':is_notify_text', 'Включить уведомления') \
+                .replace(':is_notify_param', '1')
+        self.__tg.send_msg(chat_id=user.tg_id, msg=msg, reply_markup=user_keyboard)
 
     def set_settings_list(self, tg_id: int, msg: str, msg_id: int):
         settings_list = self.__db.get_settings_list()
@@ -244,6 +252,12 @@ class MainManager:
             self.__db.set_settings_list(tg_id=tg_id, list_settings=int(msg[1]))
             message = 'Вы успешно имзенили настройки отображения!'
             keyboard = '{"inline_keyboard": [[{"text": "Main", "callback_data": "ListAnimeWatching//"}]]}'
+        self.__tg.edit_msg(chat_id=tg_id, message_id=msg_id, msg=message, reply_markup=keyboard)
+
+    def change_notify_user(self, tg_id: int, msg_id: int, is_notify: bool):
+        self.__db.update_user(tg_id=tg_id, is_notify=1 if is_notify else 0)
+        message = 'Вы успешно имзенили настройки уведомления!'
+        keyboard = '{"inline_keyboard": [[{"text": "Main", "callback_data": "ListAnimeWatching//"}]]}'
         self.__tg.edit_msg(chat_id=tg_id, message_id=msg_id, msg=message, reply_markup=keyboard)
 
     def get_info_about_anime_in_shiki(self, anime_list: list, tg_id: int = None):
@@ -555,7 +569,7 @@ class MainManager:
             else:
                 self.get_info_about_manga(tg_id=tg_id, msg_id=message_id, user_rate_id=user_rate_id, msg=other)
 
-    #TODO: Сделать уведомления по пользователю, иначе приходит вообще по всем
+    #TODO: Сделать увдомления только по тем Аниме/Манге, к которому привязан User
     def update_anime_and_manga(self):
         animes = self.__db.get_anime_id_list_for_update()
         self.get_info_about_anime_in_shiki(anime_list=animes)
@@ -584,7 +598,9 @@ class MainManager:
 
         if (len(mangas_list) is not None and len(mangas_list) != 0) or (
                 len(animes_list) is not None and len(animes_list) != 0):
-            self.__tg.send_msg(chat_id=453256909, msg=msg)
+            for user in users:
+                if user.is_notify == 1:
+                    self.__tg.send_msg(chat_id=453256909, msg=msg)
 
     def all_update_anime(self):
         animes = self.__db.get_all_anime_id()
@@ -1297,6 +1313,7 @@ class MainManager:
                 keyboard = keyboard[:-1] + '],[{"text": "Назад", "callback_data": "NextListAnimePlaned// %i"},' \
                                            '{"text": "Далее", "callback_data": "NextListAnimePlaned// %i"}]]}' % (
                                k, i)
+        keyboard = keyboard[:-2] + ', [{"text": "Фильтр", "callback_data": "Filter//"}]]}'
         keyboard = keyboard[:-2] + ',[{"text": "Main", "callback_data": "%s"}]]}' % 'Main//'
         self.__tg.edit_msg(chat_id=user.tg_id, msg=message, reply_markup=keyboard,
                            message_id=msg_id)
@@ -1484,7 +1501,7 @@ class MainManager:
                     break
 
             keyboard = self.__generate_3_keyboard(array=arr, param='ListAnimePlaned//', all=len(spisok))
-            #keyboard = keyboard[:-2] + ', [{"text": "Фильтр", "callback_data": "Filter//"}]]}'
+            keyboard = keyboard[:-2] + ', [{"text": "Фильтр", "callback_data": "Filter//"}]]}'
         elif flag == 'ListAnimeCompleted//':
             spisok = self.__db.get_my_list_anime(status='completed', user_id=user.id)
             message = f'Аниме просмотренно {len(spisok)}:\nНазвание\n\n'
@@ -1521,6 +1538,23 @@ class MainManager:
         else:
             self.__tg.edit_msg(chat_id=user.tg_id, msg=message, reply_markup=keyboard,
                                message_id=msg_id)
+
+    def filter_planned_anime(self, tg_id: int, msg_id: int, param: str):
+        if len(param.split()) == 1:
+            message = 'Фильтр Аниме:\n1) Сначала Anons\n2) Сначала Ongoing\n3) Сначала Released\n4) Убрать фильтр'
+            keyboard = json.dumps({'inline_keyboard': [[{'text': '1', 'callback_data': 'Filter// 1'}],
+                                 [{'text': '2', 'callback_data': 'Filter// 2'}],
+                                 [{'text': '3', 'callback_data': 'Filter// 3'}],
+                                 [{'text': '4', 'callback_data': 'Filter// 4'}]]})
+            self.__tg.edit_msg(chat_id=tg_id, msg=message, reply_markup=keyboard,
+                               message_id=msg_id)
+        else:
+            param = int(param.split()[1])
+            if param == 4:
+                self.__db.update_user(tg_id=tg_id)
+            else:
+                self.__db.update_user(tg_id=tg_id, filter_anime=param)
+            self.get_my_list_anime(tg_id=tg_id, flag='ListAnimePlaned//', msg_id=msg_id)
 
     def get_my_list_manga(self, tg_id: int, flag: str = None, msg_id: int = None):
         user = self.__db.get_user(tg_id=tg_id)

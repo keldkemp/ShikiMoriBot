@@ -159,6 +159,13 @@ def razbor(last_chat_id, call_back_id, last_text, message_id):
         elif last_text.find('ChangeListSettings//') != -1:
             telegram.answer_callback(call_back_id)
             mainManager.set_settings_list(tg_id=last_chat_id, msg=last_text, msg_id=message_id)
+        elif last_text.find('ChangeNotify//') != -1:
+            telegram.answer_callback(call_back_id)
+            mainManager.change_notify_user(tg_id=last_chat_id, msg_id=message_id,
+                                           is_notify=True if last_text.split()[1] == '1' else False)
+        elif last_text.find('Filter//') != -1:
+            telegram.answer_callback(call_back_id)
+            mainManager.filter_planned_anime(tg_id=last_chat_id, msg_id=message_id, param=last_text)
         else:
             telegram.send_msg(chat_id=last_chat_id, msg='main', reply_markup=mainManager.MAIN_KEYBOARD_TG)
     elif len(last_text) > 30:
