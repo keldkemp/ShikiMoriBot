@@ -10,7 +10,7 @@ from abc import ABC
 
 # Абстрактный класс по работе с настройками
 class Settings(ABC):
-    __FILE_NAME = 'settings1.json'
+    __FILE_NAME = 'settings.json'
 
     def __read_file(self) -> json:
         f = open(self.__FILE_NAME)
