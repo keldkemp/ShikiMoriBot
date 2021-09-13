@@ -50,12 +50,12 @@ class DataBaseManager:
         user = self.get_user(tg_id=tg_id)
         if search is not None:
             self.__db.insert_init(f"UPDATE USERS SET search = '{search}', "
-                                  f"is_notify = {is_notify if is_notify is not None else user.is_notify}, "
-                                  f"filter_anime = {filter_anime if filter_anime is None else 'null'} "
+                                  f"is_notify = {is_notify if is_notify is not None else 'null' if user.is_notify is None else user.is_notify}, "
+                                  f"filter_anime = {filter_anime if filter_anime is not None else 'null'} "
                                   f"WHERE tg_id = {tg_id}")
         else:
             self.__db.insert_init(f"UPDATE USERS SET search = null, "
-                                  f"is_notify = {is_notify if is_notify is not None else user.is_notify}, "
+                                  f"is_notify = {is_notify if is_notify is not None else 'null' if user.is_notify is None else user.is_notify}, "
                                   f"filter_anime = {filter_anime if filter_anime is not None else 'null'} "
                                   f"WHERE tg_id = {tg_id}")
 
