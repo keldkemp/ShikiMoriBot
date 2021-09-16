@@ -189,7 +189,7 @@ class MainManager:
         keyboard += '{"text": "10", "callback_data": "SetScrore/// %s 10 %s"}]]}' % (user_rate_id, command)
         return keyboard
 
-    def __generate_3_keyboard(self, array: list[dict], param: str, all: int) -> str:
+    def __generate_3_keyboard(self, array: list[dict], param: str, all: int, is_planned: bool = False) -> str:
         keyboard = '{"inline_keyboard": [['
         i = 1
         count = 0
@@ -211,6 +211,8 @@ class MainManager:
             keyboard = keyboard[:-1] + ']]}'
         else:
             keyboard = keyboard[:-1] + '],[{"text": "Далее", "callback_data": "Next%s 9"}]]}' % param
+        if is_planned:
+            keyboard = keyboard[:-2] + ', [{"text": "Фильтр", "callback_data": "Filter//"}]]}'
         if param.lower().find('anime') != -1:
             keyboard = keyboard[:-2] + ',[{"text": "Main", "callback_data": "%s"}]]}' % 'Main//'
         else:
@@ -1500,8 +1502,8 @@ class MainManager:
                 if i == 10:
                     break
 
-            keyboard = self.__generate_3_keyboard(array=arr, param='ListAnimePlaned//', all=len(spisok))
-            keyboard = keyboard[:-2] + ', [{"text": "Фильтр", "callback_data": "Filter//"}]]}'
+            keyboard = self.__generate_3_keyboard(array=arr, param='ListAnimePlaned//', all=len(spisok), is_planned=True)
+            #keyboard = keyboard[:-2] + ', [{"text": "Фильтр", "callback_data": "Filter//"}]]}'
         elif flag == 'ListAnimeCompleted//':
             spisok = self.__db.get_my_list_anime(status='completed', user_id=user.id)
             message = f'Аниме просмотренно {len(spisok)}:\nНазвание\n\n'
