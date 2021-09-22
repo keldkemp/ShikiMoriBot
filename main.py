@@ -1,6 +1,8 @@
 import threading
 import sys
 import datetime
+
+from Caches.main_cache import MainCache
 from DataBase.dbmanager import DataBaseManager
 from DataBase.postgresql import DataBasePg
 from Shikimori.shikimori import Shikimori
@@ -178,6 +180,7 @@ def razbor(last_chat_id, call_back_id, last_text, message_id):
 
 
 if __name__ == '__main__':
+    MAIN_CONTEXT = MainCache()
     threading.stack_size(128 * 1024)
     settings_tg = SettingsTelegram().get_settings_tg()
     settings_db = SettingsDb().get_settings_db()
@@ -195,7 +198,8 @@ if __name__ == '__main__':
     DBManager = DataBaseManager(db=db)
     mainManager = MainManager(db=DBManager, tg=telegram, shiki=Shikimori(client_id=settings_shiki['client_id'],
                                                                          client_secret=settings_shiki['client_secret'],
-                                                                         client_name=settings_shiki['client_name']))
+                                                                         client_name=settings_shiki['client_name']),
+                              context=MAIN_CONTEXT)
     if (len(sys.argv)) > 1:
         if sys.argv[1] == 'update_anime':
             mainManager.update_anime_and_manga()
@@ -212,6 +216,7 @@ if __name__ == '__main__':
             mainManager.update_anime_and_manga()
             print('SUCCSES')
             date = datetime.date.today()
+            MAIN_CONTEXT.clear_all()
         try:
             result = telegram.get_updates(offset=offset)
             if not result:
