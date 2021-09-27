@@ -24,6 +24,9 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
+      - name: PrepareReg Names
+        run: echo IMAGE_REPOSITORY=$(echo ${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+        
       - name: Check Out Repo 
         uses: actions/checkout@v2
 
@@ -44,7 +47,7 @@ jobs:
           context: ./
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/${{ github.event.repository.name }}:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_REPOSITORY }}:latest
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
