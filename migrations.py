@@ -1,6 +1,7 @@
 import json
 import Models
 import os
+from psycopg2 import errors
 from DataBase.postgresql import DataBasePg
 from Models.migrationsDto import MigrationsDto
 
@@ -88,8 +89,11 @@ class MigrationsDb:
 
     def __run_class_migrate(self, migration: MigrationsDto):
         if migration.command == 'all':
-            if self.__db.select("select count(*) from information_schema.tables where table_name = 'users'")[0][0] == 1:
+            try:
+                self.__db.select("select count(*) from users")
                 return 1
+            except errors.lookup('42P01') as e:
+                pass
             self.__ALL = True
             for _, model in Models.list_models.items():
                 self.__db.migration(model.get_code())
