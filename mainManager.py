@@ -1342,7 +1342,7 @@ class MainManager:
                 keyboard = keyboard[:-1] + '],[{"text": "Назад", "callback_data": "NextListAnimePlaned// %i"},' \
                                            '{"text": "Далее", "callback_data": "NextListAnimePlaned// %i"}]]}' % (
                                k, i)
-        keyboard = keyboard[:-2] + ', [{"text": "Фильтр", "callback_data": "Filter//"}]]}'
+            keyboard = keyboard[:-2] + ', [{"text": "Фильтр", "callback_data": "Filter//"}]]}'
         keyboard = keyboard[:-2] + ',[{"text": "Main", "callback_data": "%s"}]]}' % 'Main//'
         self.__tg.edit_msg(chat_id=user.tg_id, msg=message, reply_markup=keyboard,
                            message_id=msg_id)
@@ -1530,7 +1530,6 @@ class MainManager:
                     break
 
             keyboard = self.__generate_3_keyboard(array=arr, param='ListAnimePlaned//', all=len(spisok), is_planned=True)
-            #keyboard = keyboard[:-2] + ', [{"text": "Фильтр", "callback_data": "Filter//"}]]}'
         elif flag == 'ListAnimeCompleted//':
             spisok = self.__db.get_my_list_anime(status='completed', user_id=user.id)
             message = f'Аниме просмотренно {len(spisok)}:\nНазвание\n\n'
