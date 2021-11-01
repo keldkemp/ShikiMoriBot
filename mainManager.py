@@ -752,12 +752,12 @@ class MainManager:
         is_anime_added = self.__db.is_anime_added_user_rate(anime_id=anime_id, id_user=user.id)
 
         if is_anime_added:
-            keyboard = '{"inline_keyboard": [[{"text": "Похожие", "callback_data": "anime_similar %i"}],' \
-                       '[{"text": "Назад", "callback_data": "seasons// %s %s %i"}]]}' % (anime_id, seasons, year, page)
+            keyboard = '{"inline_keyboard": [[{"text": "Похожие", "callback_data": "anime_similar %i %i"}],' \
+                       '[{"text": "Назад", "callback_data": "seasons// %s %s %i"}]]}' % (anime_id, page, seasons, year, page)
         else:
             keyboard = '{"inline_keyboard": [[{"text": "Добавить в список", "callback_data": "add_user_rate %i"}], ' \
-                       '[{"text": "Похожие", "callback_data": "anime_similar %i"}],' \
-                       '[{"text": "Назад", "callback_data": "seasons// %s %s %i"}]]}' % (anime_id, anime_id, seasons, year, page)
+                       '[{"text": "Похожие", "callback_data": "anime_similar %i %i"}],' \
+                       '[{"text": "Назад", "callback_data": "seasons// %s %s %i"}]]}' % (anime_id, anime_id, page, seasons, year, page)
         keyboard = keyboard[:-2] + ',[{"text": "Main", "callback_data": "%s"}]]}' % 'Main//'
 
         if not self.__db.is_anime_in_bd(anime_id=anime_id):
