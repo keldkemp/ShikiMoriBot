@@ -220,6 +220,26 @@ class MainManager:
             keyboard = keyboard[:-2] + ',[{"text": "Main", "callback_data": "%s"}]]}' % 'MainManga//'
         return keyboard
 
+    def __get_notify_message(self, users: list[Users], anime_list: list[Anime], manga_list: list[Manga]) -> dict:
+        dc = {}
+
+        for user in users:
+            msg = ''
+
+            for anime in anime_list:
+                if self.__db.is_anime_added_user_rate(anime_id=anime.id, id_user=user.id):
+                    msg += f'\n--{anime.name_ru}' if msg != '' else f'Вышли все эпизоды по Аниме:\n\n--{anime.name_ru}'
+
+            for manga in manga_list:
+                if self.__db.is_manga_added_user_rate(manga_id=manga.id, id_user=user.id):
+                    if msg.find('Вышли все эпизоды по Манге') == -1:
+                        msg += '\n\nВышли все эпизоды по Манге:\n'
+                    msg += f'\n--{manga.name_ru}'
+
+            dc[user.tg_id] = msg
+
+        return dc
+
     def get_settings(self, tg_id: int):
         msg = 'Настройки\n'
         user = self.__db.get_user(tg_id=tg_id)
@@ -582,38 +602,33 @@ class MainManager:
             else:
                 self.get_info_about_manga(tg_id=tg_id, msg_id=message_id, user_rate_id=user_rate_id, msg=other)
 
-    #TODO: Сделать увдомления только по тем Аниме/Манге, к которому привязан User
     def update_anime_and_manga(self):
         animes = self.__db.get_anime_id_list_for_update()
         self.get_info_about_anime_in_shiki(anime_list=animes)
         animes_after_update = self.__db.get_anime_id_list_for_update()
         animes_list = []
-        users = self.__db.get_all_user()
-        msg = 'Вышли все эпизоды по Аниме:\n\n'
+        users = self.__db.get_all_user_notify()
 
         for anime_id in animes:
             if str(animes_after_update).find(str(anime_id)) == -1:
                 anime = self.__db.get_info_anime(id=anime_id)
                 animes_list.append(anime)
-                msg += f'--{anime.name_ru}\n'
 
         mangas = self.__db.get_manga_id_list_for_update()
         self.get_info_about_manga_in_shiki(manga_list=mangas)
         mangas_after_update = self.__db.get_manga_id_list_for_update()
         mangas_list = []
-        msg += '\nВышли все главы по Манге:\n\n'
 
         for manga_id in mangas:
             if str(mangas_after_update).find(str(manga_id)) == -1:
                 manga = self.__db.get_info_manga(id=manga_id)
                 mangas_list.append(manga)
-                msg += f'--{manga.name_ru}\n'
 
-        if (len(mangas_list) is not None and len(mangas_list) != 0) or (
-                len(animes_list) is not None and len(animes_list) != 0):
-            for user in users:
-                if user.is_notify == 1:
-                    self.__tg.send_msg(chat_id=453256909, msg=msg)
+        notify_dict = self.__get_notify_message(users, animes_list, mangas_list)
+
+        for chat_id, msg in notify_dict.items():
+            self.__tg.send_msg(chat_id=chat_id, msg=msg)
+
 
     def all_update_anime(self):
         animes = self.__db.get_all_anime_id()

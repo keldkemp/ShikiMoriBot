@@ -301,6 +301,14 @@ class DataBaseManager:
         else:
             return True
 
+    def is_manga_added_user_rate(self, manga_id: int, id_user: int) -> bool:
+        res = self.__db.select(
+            f"select * from userrates where user_id = {id_user} and target_id = {manga_id} and target_type = 2")
+        if not res:
+            return False
+        else:
+            return True
+
     def insert_or_update_manga_detail(self, list_manga: list):
         command = ''
         for manga in list_manga:
@@ -433,6 +441,14 @@ class DataBaseManager:
 
     def get_all_user(self) -> list:
         res = self.__db.select(f'SELECT id, token, refresh_token, tg_id, list_settings, is_notify FROM USERS')
+        ls = []
+        for r in res:
+            ls.append(Users(id=r[0], token=r[1], refresh_token=r[2], tg_id=r[3], list_settings=r[4], is_notify=r[5]))
+        return ls
+
+    def get_all_user_notify(self) -> list:
+        res = self.__db.select(f'SELECT id, token, refresh_token, '
+                               f'tg_id, list_settings, is_notify FROM USERS WHERE is_notify = 1')
         ls = []
         for r in res:
             ls.append(Users(id=r[0], token=r[1], refresh_token=r[2], tg_id=r[3], list_settings=r[4], is_notify=r[5]))
