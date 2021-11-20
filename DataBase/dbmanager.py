@@ -372,7 +372,7 @@ class DataBaseManager:
             command += ";"
         self.__db.insert_init(command)
 
-    def insert_or_update_anime_list(self, list_anime: list, flag: str = None):
+    def insert_or_update_anime_list(self, list_anime: list, user_id: int, flag: str = None):
         command = ''
         ids = '('
         for anime in list_anime:
@@ -395,7 +395,7 @@ class DataBaseManager:
                        f"updated_at = to_timestamp('{anime.updated_at}', 'YYYY-mm-dd HH24:MI:SS')::timestamp without time zone;"
         ids = ids[:-1] + ')'
         if flag is None:
-            ids_to_delete = self.__db.select(f'SELECT * FROM userrates where id not in {ids}')
+            ids_to_delete = self.__db.select(f'SELECT * FROM userrates where user_id = {user_id} and id not in {ids}')
             if len(ids_to_delete) != 0:
                 ids = ''
                 for id_u in ids_to_delete:

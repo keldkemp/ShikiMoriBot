@@ -484,7 +484,7 @@ class MainManager:
         if len(ls2) != 0:
             self.get_min_info_about_manga_is_shiki(id_list=ls2, tg_id=tg_id)
             threading.Thread(target=self.get_info_about_manga_in_shiki, args=(ls2, tg_id)).start()
-        self.__db.insert_or_update_anime_list(list_anime=list_user_rate)
+        self.__db.insert_or_update_anime_list(list_anime=list_user_rate, user_id=user.id)
 
     def delete_anime_list(self, tg_id: int, msg: str, msg_id: int):
         user_rate_id = msg.split(' ')[1]
@@ -553,7 +553,7 @@ class MainManager:
             anime = self.__shiki.set_rates(id_user_rates=user_rate_id, score=score,
                                            token=user.token)
             list_anime_data = self.__convert_json_to_userrates(list_user_rates=[anime])
-            self.__db.insert_or_update_anime_list(list_anime=list_anime_data, flag='NO DELETE')
+            self.__db.insert_or_update_anime_list(list_anime=list_anime_data, user_id=user.id, flag='NO DELETE')
             if type.name == 'Anime':
                 self.get_info_about_anime(tg_id=tg_id, msg_id=message_id, user_rate_id=user_rate_id, msg=other)
             else:
@@ -571,7 +571,7 @@ class MainManager:
             manga = self.__shiki.set_rates(id_user_rates=user_rate_id, volumes=volumes, status='watching',
                                            token=user.token)
             list_manga_data = self.__convert_json_to_userrates(list_user_rates=[manga])
-            self.__db.insert_or_update_anime_list(list_anime=list_manga_data, flag='NO DELETE')
+            self.__db.insert_or_update_anime_list(list_anime=list_manga_data, user_id=user.id, flag='NO DELETE')
             self.get_info_about_manga(tg_id=tg_id, msg_id=message_id, user_rate_id=user_rate_id, msg=other)
         else:
             episodes = int(commands[1])
@@ -596,7 +596,7 @@ class MainManager:
                 anime = self.__shiki.set_rates(id_user_rates=user_rate_id, chapters=episodes, status='watching',
                                                token=user.token)
             list_anime_data = self.__convert_json_to_userrates(list_user_rates=[anime])
-            self.__db.insert_or_update_anime_list(list_anime=list_anime_data, flag='NO DELETE')
+            self.__db.insert_or_update_anime_list(list_anime=list_anime_data, user_id=user.id, flag='NO DELETE')
             if type.name == 'Anime':
                 self.get_info_about_anime(tg_id=tg_id, msg_id=message_id, user_rate_id=user_rate_id, msg=other)
             else:
@@ -629,7 +629,6 @@ class MainManager:
         for chat_id, msg in notify_dict.items():
             self.__tg.send_msg(chat_id=chat_id, msg=msg)
 
-
     def all_update_anime(self):
         animes = self.__db.get_all_anime_id()
         self.get_info_about_anime_in_shiki(anime_list=animes)
@@ -645,7 +644,7 @@ class MainManager:
         user_rate = self.__shiki.create_user_rates(user_id=user.id, target_id=anime.id, token=user.token,
                                                    target_type='Anime')
         user_rate = self.__convert_json_to_userrates([user_rate])
-        self.__db.insert_or_update_anime_list(list_anime=user_rate, flag='NO DELETE')
+        self.__db.insert_or_update_anime_list(list_anime=user_rate, user_id=user.id, flag='NO DELETE')
 
         self.__tg.edit_msg(chat_id=tg_id, msg='Аниме добавлено в список!',
                            message_id=msg_id, reply_markup=self.MY_ANIME_LIST_KEYBOARD_TG)
@@ -661,7 +660,7 @@ class MainManager:
         user_rate = self.__shiki.create_user_rates(user_id=user.id, target_id=manga.id, token=user.token,
                                                    target_type='Manga')
         user_rate = self.__convert_json_to_userrates([user_rate])
-        self.__db.insert_or_update_anime_list(list_anime=user_rate, flag='NO DELETE')
+        self.__db.insert_or_update_anime_list(list_anime=user_rate, user_id=user.id, flag='NO DELETE')
 
         self.__tg.edit_msg(chat_id=tg_id, msg='Манга добавлено в список!',
                            message_id=msg_id, reply_markup=self.MY_MANGA_LIST_KEYBOARD_TG)
