@@ -59,6 +59,13 @@ class DataBaseManager:
                                   f"filter_anime = {filter_anime if filter_anime is not None else 'null'} "
                                   f"WHERE tg_id = {tg_id}")
 
+    def get_anime_id_list_for_update_franchise(self) -> list:
+        res = self.__db.select("select id from anime where franchise = 'None' and status = 'released' and (released_on is null or released_on >= now() - interval '1 year')")
+        ls = []
+        for l in res:
+            ls.append(l[0])
+        return ls
+
     def get_anime_id_list_for_update(self) -> list:
         res = self.__db.select("SELECT id FROM anime WHERE status <> 'released'")
         ls = []

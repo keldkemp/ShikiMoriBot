@@ -629,6 +629,12 @@ class MainManager:
         for chat_id, msg in notify_dict.items():
             self.__tg.send_msg(chat_id=chat_id, msg=msg)
 
+        self.update_anime_franchise()
+
+    def update_anime_franchise(self):
+        animes = self.__db.get_anime_id_list_for_update_franchise()
+        self.get_info_about_anime_in_shiki(anime_list=animes)
+
     def all_update_anime(self):
         animes = self.__db.get_all_anime_id()
         self.get_info_about_anime_in_shiki(anime_list=animes)
