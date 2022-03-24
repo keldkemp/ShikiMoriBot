@@ -1,3 +1,6 @@
+import requests
+
+import Anilibria.anilibria
 from Caches.main_cache import MainCache
 from DataBase.dbmanager import DataBaseManager
 from Shikimori.shikimori import Shikimori
@@ -1083,13 +1086,103 @@ class MainManager:
                                                                                                            page, flag)
         self.__tg.edit_msg(chat_id=user.tg_id, msg=message, message_id=msg_id, reply_markup=keyboard)
 
+    def send_torrent_file(self, tg_id, param):
+        param = param.split(' ')
+        url = 'https://www.anilibria.tv/public/torrent/download.php?id=' + param[1]
+        file = requests.get(url)
+        self.__tg.send_file(tg_id, file.content)
+
+    def get_anime_torrents_libria(self, tg_id, msg_id, param):
+        param = param.split(' ')
+        anime_id = int(param[1])
+        key_libria_animes = 'libria_animes_' + str(tg_id)
+        animes = self.__context.get(key_libria_animes)
+        msg = ''
+        keyboard = '{"inline_keyboard": [['
+        i = 1
+        count = 0
+
+        for anime in animes:
+            if anime.id != anime_id:
+                continue
+            for torrent in anime.torrents:
+                msg += '%i)Качество: %s , Серии: %s\n' % (i, torrent.quality, torrent.series)
+                if count == 3:
+                    keyboard = keyboard[:-1] + '],['
+                    count = 0
+                keyboard += '{"text": %i, "callback_data": "download_torrent %i"},' % (i, torrent.id)
+
+                i += 1
+                count += 1
+        keyboard = keyboard[:-1] + '], [{"text": "Назад", "callback_data": "libria_detail %i"}]]}' % anime_id
+
+        self.__tg.edit_msg(tg_id, msg_id, msg, keyboard)
+
+
+    def get_anime_detail_libria(self, tg_id, msg_id, param):
+        param = param.split(' ')
+        anime_id = int(param[1])
+        key_libria_animes = 'libria_animes_' + str(tg_id)
+        animes = self.__context.get(key_libria_animes)
+        msg = ''
+        keyboard = ''
+
+        for anime in animes:
+            if anime.id != anime_id:
+                continue
+            msg += 'Название: ' + anime.name_ru
+            msg += '\nНазвание_ru: ' + anime.name
+            msg += '\nСтатус: ' + anime.status
+            msg += '\nСерии: ' + anime.series
+            msg += '\nГод: ' + anime.year
+            msg += '\nPoster: ' + anime.poster
+            keyboard = '{"inline_keyboard": [[{"text": "Торренты", "callback_data": "libria_torrents %i"}], ' \
+                       '[{"text": "Назад", "callback_data": "libria_s"}]]}' % anime.id
+
+        self.__tg.edit_msg(tg_id, msg_id, msg, keyboard)
+
+
+    def search_anime_in_anilibria(self, chat_id, msg_id):
+        key_name = 'last_anime_detail_' + str(chat_id)
+        key_rate = 'last_anime_rate_' + str(chat_id)
+        key_libria_animes = 'libria_animes_' + str(chat_id)
+        anime_name = self.__context.get(key_name)
+        user_rate = int(self.__context.get(key_rate))
+
+        animes = self.__libria.get_search_anime(search=anime_name)
+        self.__context.add(key_libria_animes, animes)
+
+        msg = ''
+        keyboard = '{"inline_keyboard": [['
+        i = 1
+        count = 0
+
+        for anime in animes:
+            msg += '%i) %s/%s\n' % (i, anime.name_ru, anime.name)
+            if count == 3:
+                keyboard = keyboard[:-1] + '],['
+                count = 0
+            keyboard += '{"text": %i, "callback_data": "libria_detail %i"},' % (i, anime.id)
+
+            count += 1
+            i += 1
+
+        keyboard = keyboard[:-1] + ']]}'
+        self.__tg.edit_msg(chat_id, msg_id, msg, keyboard)
+
     def get_info_about_anime(self, tg_id: int, msg_id: int, user_rate_id: int, msg: str):
         msg = msg.split(' ')
+        key_name = 'last_anime_detail_' + str(tg_id)
+        key_rate = 'last_anime_rate_' + str(tg_id)
         user = self.__db.get_user(tg_id=tg_id)
         user_rate = self.__db.get_info_user_rate(id=user_rate_id)
         anime = self.__db.get_info_anime(id=user_rate.target_id)
         anime_franchise = self.__shiki.get_anime_search(token=user.token, franchise=anime.franchise, limit=9,
                                                         page=1, order='aired_on', timeout=3)
+
+        self.__context.add(key_name, anime.name)
+        self.__context.add(key_rate, str(user_rate.id))
+
         status = anime.status
         message = f'Название: {anime.name}\nНазвание_ru: {anime.name_ru}\nСтатус: {anime.status}\n' \
                   f'Рейтинг: {anime.rating}\nТип: {anime.kind}\n'
@@ -1129,6 +1222,7 @@ class MainManager:
                     set_score = 'SetScrore// %s %s' % (user_rate.id, msg[2])
                 keyboard = keyboard[
                            :-2] + '[{"text": "Поставить оценку", "callback_data": "%s"}],yy' % set_score
+            keyboard = keyboard[:-2] + '[{"text": "Торренты", "callback_data": "libria_s"}],yy'
         else:
             keyboard = '{"inline_keyboard": [[['
         if len(anime_franchise) > 0:
@@ -1689,3 +1783,4 @@ class MainManager:
         self.__tg = tg
         self.__shiki = shiki
         self.__context = context
+        self.__libria = Anilibria.anilibria.Anilibria()

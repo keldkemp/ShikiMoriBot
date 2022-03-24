@@ -168,6 +168,18 @@ def razbor(last_chat_id, call_back_id, last_text, message_id):
         elif last_text.find('Filter//') != -1:
             telegram.answer_callback(call_back_id)
             mainManager.filter_planned_anime(tg_id=last_chat_id, msg_id=message_id, param=last_text)
+        elif last_text == 'libria_s':
+            telegram.answer_callback(call_back_id)
+            mainManager.search_anime_in_anilibria(last_chat_id, message_id)
+        elif last_text.find('libria_detail') != -1:
+            telegram.answer_callback(call_back_id)
+            mainManager.get_anime_detail_libria(tg_id=last_chat_id, msg_id=message_id, param=last_text)
+        elif last_text.find('libria_torrents') != -1:
+            telegram.answer_callback(call_back_id)
+            mainManager.get_anime_torrents_libria(tg_id=last_chat_id, msg_id=message_id, param=last_text)
+        elif last_text.find('download_torrent') != -1:
+            telegram.answer_callback(call_back_id)
+            mainManager.send_torrent_file(last_chat_id, last_text)
         else:
             telegram.send_msg(chat_id=last_chat_id, msg='main', reply_markup=mainManager.MAIN_KEYBOARD_TG)
     elif len(last_text) > 30:

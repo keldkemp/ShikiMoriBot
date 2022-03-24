@@ -62,6 +62,15 @@ class Telegram:
             r = self.session.post(self.__BASE_URL + 'answerCallbackQuery', data=data)
             return json.loads(r.text)
 
+    def send_file(self, chat_id, doc):
+        data = {'chat_id': chat_id}
+        file = {'document': doc}
+        try:
+            r = self.session.post(self.__BASE_URL + 'sendDocument', data=data, files=file)
+        except requests.exceptions.ConnectionError:
+            r = self.session.post(self.__BASE_URL + 'sendDocument', data=data, files=file)
+        return json.loads(r.text)
+
     def __init__(self, token: str):
         self.__TOKEN = token
         self.__BASE_URL = self.__BASE_URL + self.__TOKEN + '/'
