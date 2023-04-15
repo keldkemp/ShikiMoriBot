@@ -8,10 +8,10 @@ from requests import Session
 
 
 class Shikimori:
-    __BASE_URL_V2 = 'https://shikimori.one/api/v2/'
-    __BASE_URL_V1 = 'https://shikimori.one/api/'
-    __BASE_URL_AUTH = 'https://shikimori.one/oauth/token'
-    BASE_URL_SHIKI = 'https://shikimori.one'
+    __BASE_URL_V2 = 'https://shikimori.me/api/v2/'
+    __BASE_URL_V1 = 'https://shikimori.me/api/'
+    __BASE_URL_AUTH = 'https://shikimori.me/oauth/token'
+    BASE_URL_SHIKI = 'https://shikimori.me'
 
     def __get_headers(self, token: str) -> dict:
         headers = {'User-Agent': self.__client_name, 'Authorization': f'Bearer {token}'}
