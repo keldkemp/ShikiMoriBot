@@ -1009,11 +1009,13 @@ class MainManager:
         message = f'Название: {anime.name}\nНазвание_ru: {anime.name_ru}\nСтатус: {anime.status}\n' \
                   f'Рейтинг: {anime.rating}\nТип: {anime.kind}\n'
         if status == 'ongoing':
-            message += f'Дата выхода эпизода: {datetime.datetime.strftime(anime.next_episode_at, "%Y-%m-%d")}\n'
+            if anime.next_episode_at is not None:
+                message += f'Дата выхода эпизода: {datetime.datetime.strftime(anime.next_episode_at, "%Y-%m-%d")}\n'
             message += f'Ко-во вышедших эпизодов: {anime.episodes_aired}\n'
         message += f'Всего эпизодов: {anime.episodes}\n'
         if status != 'anons':
-            message += f'Дата выхода: {datetime.datetime.strftime(anime.aired_on, "%Y-%m-%d")}\n'
+            if anime.aired_on is not None:
+                message += f'Дата выхода: {datetime.datetime.strftime(anime.aired_on, "%Y-%m-%d")}\n'
         message += f'Оценка: {anime.score}\nUrl: {anime.url}\n\nОписание:\n{anime.description}'
         self.__tg.edit_msg(chat_id=tg_id, msg=message, message_id=msg_id, reply_markup=keyboard)
 
