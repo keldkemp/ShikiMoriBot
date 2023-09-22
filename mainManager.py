@@ -80,14 +80,20 @@ class MainManager:
             rating = anime.get('rating')
             if rating is None or rating == 'None':
                 rating = None
-            if anime.get('name').find("'") != -1:
-                name = anime.get('name').replace("'", '')
+            if anime.get('name') is not None:
+                if anime.get('name').find("'") != -1:
+                    name = anime.get('name').replace("'", '')
+                else:
+                    name = anime.get('name')
             else:
-                name = anime.get('name')
-            if anime.get('russian').find("'") != -1:
-                name_ru = anime.get('russian').replace("'", '')
+                name = "unknown name"
+            if anime.get('russian') is not None and anime.get('russian').find("'") != -1:
+                if anime.get('russian').find("'") != -1:
+                    name_ru = anime.get('russian').replace("'", '')
+                else:
+                    name_ru = anime.get('russian')
             else:
-                name_ru = anime.get('russian')
+                name_ru = "unknown name ru"
             if anime.get('franchise') is None or anime.get('franchise') == 'None':
                 franchise = None
             else:
