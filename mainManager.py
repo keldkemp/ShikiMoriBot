@@ -87,7 +87,7 @@ class MainManager:
                     name = anime.get('name')
             else:
                 name = "unknown name"
-            if anime.get('russian') is not None and anime.get('russian').find("'") != -1:
+            if anime.get('russian') is not None:
                 if anime.get('russian').find("'") != -1:
                     name_ru = anime.get('russian').replace("'", '')
                 else:
