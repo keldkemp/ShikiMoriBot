@@ -73,7 +73,7 @@ class MainManager:
                 description = re.sub('\[.+?\]', ' ', description)
                 description = description.replace("'", ' ')
             name_jp = anime.get('japanese')
-            if name_jp is None or name_jp == 'None':
+            if name_jp is None or name_jp == 'None' or (len(name_jp) == 1 and name_jp[0] is None):
                 name_jp = None
             else:
                 name_jp = name_jp[0].replace("'", '')
