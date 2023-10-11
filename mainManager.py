@@ -104,7 +104,6 @@ class MainManager:
                             episodes_aired=anime.get('episodes_aired'), rating=rating,
                             description=description, updated_at=updated_at, aired_on=aried_on, released_on=released_on,
                             next_episode_at=next_episode_at, url=url, franchise=franchise))
-            print(f'Anime, id: {anime.id}, name: {name}, status: {anime.status}, url: {url}')
         return ls
 
     def __convert_json_to_manga(self, list_manga: list) -> list:
