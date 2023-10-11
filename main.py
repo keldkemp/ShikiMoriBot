@@ -197,7 +197,7 @@ if __name__ == '__main__':
     settings_tg = SettingsTelegram().get_settings_tg()
     settings_db = SettingsDb().get_settings_db()
     settings_shiki = SettingsShiki().get_settings_shiki()
-    shiki_url = f'https://shikimori.one/oauth/authorize?client_id={settings_shiki["client_id"]}' \
+    shiki_url = f'https://shikimori.me/oauth/authorize?client_id={settings_shiki["client_id"]}' \
                 f'&redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob&response_type=code&scope=user_rates'
     log = Logging()
     db = DataBasePg(dbname=settings_db['db_name'], user=settings_db['db_user'],

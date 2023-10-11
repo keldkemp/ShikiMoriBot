@@ -40,6 +40,7 @@ class DataBasePg(DataBaseStandart):
             self.CONN.commit()
             c.close()
         except Error as e:
+            print(e)
             pass
 
     def migration(self, command):
@@ -57,6 +58,7 @@ class DataBasePg(DataBaseStandart):
             self.CONN.commit()
             c.close()
         except Error as e:
+            print(e)
             pass
 
     def conn_open_close(self, stat):
