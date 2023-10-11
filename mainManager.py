@@ -74,7 +74,7 @@ class MainManager:
                 description = description.replace("'", ' ')
             name_jp = anime.get('japanese')
             if name_jp is None or name_jp == 'None' or (len(name_jp) == 1 and name_jp[0] is None):
-                name_jp = None
+                name_jp = "unknown name jp"
             else:
                 name_jp = name_jp[0].replace("'", '')
             rating = anime.get('rating')
@@ -104,6 +104,7 @@ class MainManager:
                             episodes_aired=anime.get('episodes_aired'), rating=rating,
                             description=description, updated_at=updated_at, aired_on=aried_on, released_on=released_on,
                             next_episode_at=next_episode_at, url=url, franchise=franchise))
+            print(f'Anime, id: {anime.id}, name: {name}, status: {anime.status}, url: {url}')
         return ls
 
     def __convert_json_to_manga(self, list_manga: list) -> list:
