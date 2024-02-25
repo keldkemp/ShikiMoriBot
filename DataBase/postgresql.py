@@ -63,9 +63,12 @@ class DataBasePg(DataBaseStandart):
 
     def conn_open_close(self, stat):
         if stat == 1:
-            self.CONN = psycopg2.connect(dbname=self.__dbname, user=self.__user,
-                                         password=self.__password, host=self.__host,
-                                         port=self.__port)
+            if self.CONN is not None:
+                return
+            else:
+                self.CONN = psycopg2.connect(dbname=self.__dbname, user=self.__user,
+                                             password=self.__password, host=self.__host,
+                                             port=self.__port)
         else:
             self.CONN.close()
 
